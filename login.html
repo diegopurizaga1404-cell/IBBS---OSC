@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – IBBS</title>
+  <meta name="description" content="Acceso al sistema de gestión de incidencias IBBS." />
+  
+  <!-- Modern Montserrat Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #CE0F69;
+      --primary-hover: #A80A54;
+      --secondary: #009CDE;
+      --bg-dark: #00121c;
+      --glass-bg: rgba(0, 36, 56, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-main: #ffffff;
+      --text-muted: #d4d4d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* --- Slideshow Background --- */
+    .slideshow-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: var(--bg-dark);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out;
+      z-index: 1;
+    }
+
+    .slide.active {
+      opacity: 1;
+    }
+
+    .slide-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 18, 28, 0.65); /* Overlay para legibilidad del panel frontal */
+      z-index: 2;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(5%, 10%) scale(1.1); }
+      100% { transform: translate(-5%, -5%) scale(0.9); }
+    }
+
+    /* --- Main Container --- */
+    .layout-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      width: 100%;
+      max-width: 850px;
+      margin: 20px;
+      border-radius: 24px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
+                  inset 0 1px 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+    }
+
+    /* --- Left Panel (Context/Branding) --- */
+    .context-panel {
+      flex: 1.2;
+      padding: 40px 40px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .logo-wrapper {
+      margin-bottom: 24px;
+    }
+
+    .yofc-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 4px 0;
+    }
+
+    .yofc-letters {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      line-height: 1;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .yofc-y { color: #CE0F69; }
+    .yofc-o { color: #FFB932; }
+    .yofc-f { color: #A5C84B; }
+    .yofc-c { color: #009CDE; }
+
+    .yofc-slogan {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .login-app-title {
+      margin-top: 24px;
+    }
+
+    .login-app-title h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .login-app-title span {
+      font-size: 0.85rem;
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .platform-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 24px;
+      font-weight: 300;
+    }
+
+    .sections-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .section-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateX(5px);
+    }
+
+    .section-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .section-info h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .section-info p {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+
+    /* --- Right Panel (Auth Form) --- */
+    .auth-panel {
+      flex: 1;
+      padding: 40px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+
+    .auth-header {
+      margin-bottom: 40px;
+    }
+
+    .auth-header h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .auth-header p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      display: flex;
+      transition: color 0.3s ease;
+      pointer-events: none;
+    }
+
+    .input-icon-right {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      transition: color 0.3s ease;
+      padding: 4px;
+    }
+
+    .input-icon-right:hover {
+      color: #cbd5e1;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px 44px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-input::placeholder {
+      color: #475569;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-input:focus ~ .input-icon {
+      color: var(--primary);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #CE0F69, #009CDE, #CE0F69, #009CDE);
+      background-size: 300% 100%;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      box-shadow: 0 10px 20px -5px rgba(206, 15, 105, 0.4);
+      position: relative;
+      overflow: hidden;
+      animation: gradientFlow 6s ease infinite;
+    }
+
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .btn-login::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+      transform: skewX(-20deg);
+      transition: all 0.5s ease;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-login:hover:not(:disabled)::after {
+      left: 150%;
+    }
+
+    .btn-login:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      background: #1e293b;
+      box-shadow: none;
+    }
+
+    .auth-footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+
+    .error-msg {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 2px solid white;
+      width: 18px;
+      height: 18px;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* SVG Base */
+    .icon-svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .layout-wrapper {
+        flex-direction: column;
+        max-width: 450px;
+        margin: 20px;
+      }
+      .context-panel {
+        padding: 40px 30px 20px;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .platform-desc {
+        display: none; /* Hide description on mobile to save space */
+      }
+      .auth-panel {
+        padding: 30px;
+      }
+    }
+
+    /* Language Switcher */
+    .lang-switcher {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      display: flex;
+      gap: 5px;
+      z-index: 10;
+    }
+
+    .lang-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.5);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Background Slideshow -->
+  <div class="slideshow-bg" id="slideshow">
+    <div class="slide active" style="background-image: url('assets/6035b5f591816.jpg');"></div>
+    <div class="slide" style="background-image: url('assets/yofc-social.jpg');"></div>
+    <div class="slide" style="background-image: url('assets/yofff.jpg');"></div>
+    <div class="slide-overlay"></div>
+  </div>
+
+  <!-- Glass Container -->
+  <div class="layout-wrapper">
+    
+    <!-- BRANDING & CONTEXT -->
+    <div class="context-panel">
+      
+      <div class="logo-wrapper">
+        <div class="yofc-logo">
+          <div class="yofc-letters">
+            <span class="yofc-y">Y</span><span class="yofc-o">O</span><span class="yofc-f">F</span><span class="yofc-c">C</span>
+          </div>
+          <div class="yofc-slogan">Smart Link Better Life.</div>
+        </div>
+        <div class="login-app-title">
+          <h1 data-i18n="APP_TITLE">IBBS - Gestión de incidencias</h1>
+        </div>
+      </div>
+
+      <p class="platform-desc" data-i18n="LOGIN_DESC">
+        Sistema centralizado de registro, monitoreo y seguimiento de incidencias. Accede de forma segura a todas tus herramientas.
+      </p>
+
+      <div class="sections-grid">
+        <div class="section-card">
+          <div class="section-icon">🏙️</div>
+          <div class="section-info">
+            <h3 data-i18n="LOGIN_ENTITIES_TITLE">Entidades</h3>
+            <p data-i18n="LOGIN_ENTITIES_DESC">Creación y gestión de registros de Entidades.</p>
+          </div>
+        </div>
+        
+        <div class="section-card">
+          <div class="section-icon">🌐</div>
+          <div class="section-info">
+            <h3 data-i18n="LOGIN_SOC_TITLE">SOC Nodos</h3>
+            <p data-i18n="LOGIN_SOC_DESC">Monitoreo y emisión de tickets SOC.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-icon">🔗</div>
+          <div class="section-info">
+            <h3 data-i18n="LOGIN_LIB_TITLE">Biblioteca</h3>
+            <p data-i18n="LOGIN_LIB_DESC">Repositorio de enlaces y recursos SOC.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AUTHENTICATION FORM -->
+    <div class="auth-panel">
+      
+      <div class="lang-switcher">
+        <button class="lang-btn active" id="lang-es" onclick="changeLang('es')">ES</button>
+        <button class="lang-btn" id="lang-en" onclick="changeLang('en')">EN</button>
+      </div>
+
+      <div class="auth-header">
+        <h2 data-i18n="LOGIN_WELCOME">Bienvenido</h2>
+        <p data-i18n="LOGIN_SUBTITLE">Inicia sesión con tus credenciales seguras</p>
+      </div>
+
+      <div id="login-error" class="error-msg">
+        <svg class="icon-svg" style="width:16px;height:16px;flex-shrink:0;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span id="error-text">Credenciales inválidas.</span>
+      </div>
+
+      <form id="login-form" autocomplete="off">
+        
+        <div class="form-group">
+          <label class="form-label" for="email" data-i18n="LABEL_EMAIL">Dirección de Correo</label>
+          <div class="input-wrapper">
+            <input class="form-input" id="email" type="email" placeholder="usuario@dominio.com" required autocomplete="username" />
+            <div class="input-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password" data-i18n="LABEL_PASSWORD">Contraseña</label>
+          <div class="input-wrapper">
+            <input class="form-input" id="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+            <div class="input-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div class="input-icon-right" id="toggle-password" title="Mostrar contraseña">
+              <svg class="icon-svg" viewBox="0 0 24 24" id="eye-icon">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-login">
+          <div class="spinner" id="login-spinner"></div>
+          <span id="login-btn-text" data-i18n="BTN_LOGIN">Ingresar a la Plataforma</span>
+        </button>
+
+      </form>
+
+      <div class="auth-footer" data-i18n="FOOTER_TEXT">
+        &copy; 2026 IBBS - Gestión de Incidencias • Uso exclusivo corporativo
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Internationalization -->
+  <script src="js/i18n.js"></script>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/supabase.js"></script>
+  
+  <!-- Login Logic -->
+  <!-- Note: Overriding the error handling temporarily here or ensuring it targets the right spans -->
+  <script>
+    // Language Switcher Helper
+    window.changeLang = (lang) => {
+      I18n.toggleLanguage(); // Since it only has 2 languages, toggle works
+      // If we had more, we'd use a specific setLang function
+      updateLangButtons();
+    };
+
+    function updateLangButtons() {
+      const current = I18n.getLang();
+      document.getElementById('lang-es').classList.toggle('active', current === 'es');
+      document.getElementById('lang-en').classList.toggle('active', current === 'en');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateLangButtons();
+      const loginForm = document.getElementById('login-form');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const btnLogin = document.getElementById('btn-login');
+      const spinner = document.getElementById('login-spinner');
+      const btnText = document.getElementById('login-btn-text');
+      const errorMsg = document.getElementById('login-error');
+      const errorText = document.getElementById('error-text');
+
+      // Check if already logged in
+      const { data: { session } } = await window.supabaseDb.auth.getSession();
+      if (session) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        errorMsg.style.display = 'none';
+        btnLogin.disabled = true;
+        spinner.style.display = 'block';
+        btnText.textContent = 'Verificando...';
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        try {
+          const { data, error } = await window.supabaseDb.auth.signInWithPassword({
+            email, password
+          });
+
+          if (error) throw error;
+          window.location.href = 'index.html';
+
+        } catch (err) {
+          console.error('Login error:', err.message);
+          errorText.textContent = 'Credenciales inválidas o sin acceso.';
+          errorMsg.style.display = 'flex';
+          
+          btnLogin.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Ingresar a la Plataforma';
+        }
+      });
+      
+      // Toggle Password Helper
+      document.getElementById('toggle-password').addEventListener('click', function() {
+        const pwdInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        
+        if (pwdInput.type === 'password') {
+          pwdInput.type = 'text';
+          eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        } else {
+          pwdInput.type = 'password';
+          eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+      });
+
+      // Background Slideshow
+      const slides = document.querySelectorAll('.slide');
+      let currentSlide = 0;
+      if (slides.length > 0) {
+        setInterval(() => {
+          slides[currentSlide].classList.remove('active');
+          currentSlide = (currentSlide + 1) % slides.length;
+          slides[currentSlide].classList.add('active');
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IBBS – Gestión de Incidencias</title>
+  <meta name="description"
+    content="Sistema de gestión de incidencias IBBS – registro, seguimiento y control de tickets para Entidades y SOC Nodos." />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232563eb'/><text y='23' x='5' font-size='20'>📡</text></svg>" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════ LOADING ══ -->
+  <div id="app-loading"
+    style="position:fixed;inset:0;background:#0f2147;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;">
+    <div style="font-size:2.5rem;">📡</div>
+    <div style="color:#93c5fd;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:500;letter-spacing:.5px;">
+      Cargando datos…</div>
+    <div style="width:180px;height:4px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;">
+      <div
+        style="height:100%;width:60%;background:#3b82f6;border-radius:99px;animation:loadAnim 1.4s ease-in-out infinite alternate;">
+      </div>
+    </div>
+    <style>
+      @keyframes loadAnim {
+        from {
+          width: 20%
+        }
+
+        to {
+          width: 90%
+        }
+      }
+    </style>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ APP ROOT ══ -->
+  <div id="app-root" style="display:none;width:100%;min-height:100vh;">
+
+    <!-- Sidebar toggle (mobile) -->
+    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Abrir menú">☰</button>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="yofc-logo">
+          <div class="yofc-letters">
+            <span class="yofc-y">Y</span><span class="yofc-o">O</span><span class="yofc-f">F</span><span class="yofc-c">C</span>
+          </div>
+          <div class="yofc-slogan">Smart Link Better Life.</div>
+        </div>
+        <div class="sidebar-app-title">
+          <h1 data-i18n="APP_TITLE">IBBS - Gestión de incidencias</h1>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        
+        <!-- ENTIDADES -->
+        <div class="nav-section">
+          <div class="nav-section-header">
+            <span class="nav-section-title" data-i18n="NAV_ENTITIES">Entidades</span>
+            <span class="nav-section-arrow">▾</span>
+          </div>
+          <div class="nav-items">
+            <div class="nav-item active" data-tab="tab1" data-i18n="NAV_CREATE_REG">
+              <span class="nav-icon">📝</span>
+              Creación de Registro
+            </div>
+            <div class="nav-item" data-tab="tab6" data-i18n="NAV_TICKETS">
+              <span class="nav-icon">🗂</span>
+              Registros
+              <span class="nav-badge hidden" id="badge-tab6">0</span>
+            </div>
+            <div class="nav-item" data-tab="tab-dashboard" data-i18n="NAV_DASHBOARD">
+              <span class="nav-icon">📊</span>
+              Dashboard
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ENLACES SOC -->
+        <div class="nav-section">
+          <div class="nav-section-header">
+            <span class="nav-section-title" data-i18n="NAV_SOC_LINKS">Enlaces SOC</span>
+            <span class="nav-section-arrow">▾</span>
+          </div>
+          <div class="nav-items">
+            <div class="nav-item" data-tab="tab5" data-i18n="NAV_LIBRARY">
+              <span class="nav-icon">🔗</span>
+              Biblioteca
+            </div>
+          </div>
+        </div>
+
+      </nav>
+
+      <!-- BOTÓN MODO OSCURO & LOGOUT -->
+      <div style="margin-top: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+        
+        <!-- Perfil de Usuario -->
+        <div id="user-profile-box" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+          <div style="width: 32px; height: 32px; background: var(--brand-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">👤</div>
+          <div style="overflow: hidden;">
+            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="USER_OPERATOR">Operador</div>
+            <div id="user-display-name" style="font-size: 0.85rem; color: white; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cargando...</div>
+          </div>
+        </div>
+
+        <button id="theme-toggle" class="btn"
+          style="width: 100%; background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_THEME">Alternar Tema</span>
+          <span class="nav-icon" id="theme-icon">🌙</span>
+        </button>
+        <button id="logout-btn" class="btn"
+          style="width: 100%; background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_LOGOUT">Cerrar Sesión</span>
+          <span class="nav-icon">🚪</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <div class="main-content">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <div style="flex:1">
+          <div class="topbar-title" id="topbar-title">Creación de Registro</div>
+        </div>
+        
+        <!-- Language Switcher in Topbar -->
+        <div style="display: flex; gap: 4px; margin-right: 15px;">
+           <button onclick="I18n.toggleLanguage()" class="btn" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--gray-200); background: var(--white); color: var(--gray-600); border-radius: 6px;">
+             🌐 <span id="lang-indicator">ES</span>
+           </button>
+        </div>
+
+        <span class="topbar-section-badge" id="topbar-section">Entidades</span>
+      </header>
+
+      <!-- Page body -->
+      <main class="page-body">
+
+        <!-- ════════════════════════════════
+           TAB DASHBOARD – SOC Control Center V3
+        ════════════════════════════════ -->
+        <div class="tab-pane" id="tab-dashboard">
+          
+          <div class="dashboard-top-section" style="margin-bottom: 30px;">
+            <div style="margin-bottom: 20px;">
+              <h2 style="color: var(--gray-800); font-size: 1.6rem; margin: 0; letter-spacing: 1px;" data-i18n="DB_TITLE">DASHBOARD</h2>
+              <p style="color: var(--brand-blue); font-size: 0.75rem; margin: 0; font-weight: 800; text-transform: uppercase;" data-i18n="DB_SUBTITLE">Monitoreo en Tiempo Real</p>
+            </div>
+            
+            <!-- Dashboard Filters -->
+            <div class="toolbar dashboard-filter-bar" style="margin-left: 0; margin-bottom: 0;">
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="DB_START">F. Inicio:</span>
+                <input type="date" id="db-start-date">
+              </div>
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="DB_END">F. Término:</span>
+                <input type="date" id="db-end-date">
+              </div>
+              
+              <div class="divider"></div>
+              
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="DB_REGION">Región:</span>
+                <select id="db-filter-region">
+                  <option value="" data-i18n="T2_ALL_REGIONS">Todas las regiones</option>
+                </select>
+              </div>
+              
+              <button class="btn btn-primary" id="db-btn-query" style="height: 34px; padding: 0 16px; font-size: 0.85rem;" data-i18n="BTN_SEARCH">
+                🔍 Buscar
+              </button>
+              
+              <div class="range-buttons" style="margin-left: auto;">
+                <button class="btn-range" id="db-btn-today" data-i18n="DB_TODAY">hoy</button>
+                <button class="btn-range" id="db-btn-7d" data-i18n="DB_7D">los últimos 7 días</button>
+                <button class="btn-range" id="db-btn-15d" data-i18n="DB_15D">los últimos 15 días</button>
+                <button class="btn-range" id="db-btn-30d" data-i18n="DB_30D">los últimos 30 días</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Top KPIs -->
+          <div class="dashboard-kpi-grid" id="db-kpi-container">
+            <div class="skeleton kpi-skeleton"></div>
+            <div class="skeleton kpi-skeleton"></div>
+            <div class="skeleton kpi-skeleton"></div>
+          </div>
+
+          <!-- Region Pills -->
+          <div class="region-grid" id="db-region-grid">
+            <!-- Renderizado desde tabDashboard.js -->
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="dashboard-content-grid">
+            <div class="soc-chart-card">
+              <div class="soc-chart-header" data-i18n="DB_CHART_REGION">Reportes por Región</div>
+              <div class="dashboard-chart-container">
+                <div id="skeleton-bar" class="skeleton chart-skeleton"></div>
+                <canvas id="db-region-chart"></canvas>
+              </div>
+            </div>
+            <div class="soc-chart-card">
+              <div class="soc-chart-header" data-i18n="DB_CHART_ENTITY">Distribución por ENTIDAD</div>
+              <div class="dashboard-chart-container">
+                <div id="skeleton-donut" class="skeleton chart-skeleton"></div>
+                <canvas id="db-area-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Activity Table -->
+          <div class="soc-table-card">
+            <div class="soc-table-header">
+              <div style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;" data-i18n="DB_LATEST">Últimos Reportes</div>
+              <div class="live-indicator">
+                <span class="pulse-dot-green"></span>
+                <span data-i18n="DB_LIVE">EN VIVO</span>
+              </div>
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="soc-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="COL_DATE">FECHA</th>
+                    <th data-i18n="COL_REGION">REGIÓN</th>
+                    <th data-i18n="COL_PROVINCE">PROVINCIA</th>
+                    <th data-i18n="COL_LOCALITY">LOCALIDAD</th>
+                    <th data-i18n="COL_ENTITY">ENTIDAD</th>
+                    <th data-i18n="COL_NAME">NOMBRE</th>
+                    <th data-i18n="COL_DNI">DNI</th>
+                    <th data-i18n="COL_STATUS">ESTADO</th>
+                  </tr>
+                </thead>
+                <tbody id="db-latest-table-body">
+                  <tr><td colspan="8"><div class="skeleton table-skeleton"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton table-skeleton"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton table-skeleton"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div><!-- /tab-dashboard -->
+
+        <!-- ════════════════════════════════
+           TAB 1 – Entidades: Creación
+      ════════════════════════════════ -->
+        <div class="tab-pane active" id="tab1">
+
+          <div class="page-header">
+            <div>
+              <h2 data-i18n="T1_TITLE">Creación de Registro</h2>
+              <p data-i18n="T1_SUBTITLE">Completa los datos del solicitante y la ubicación de la entidad afectada.</p>
+            </div>
+          </div>
+
+          <div id="t1-draft-badge" class="draft-badge hidden">
+            <span class="dot"></span>
+            Datos del solicitante guardados — completa la ubicación para finalizar
+          </div>
+
+          <div class="two-panel">
+
+            <!-- Left: Datos del solicitante -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon">👤</div>
+                <div>
+                  <div class="card-title" data-i18n="T1_CARD_SOLICITANT">Datos del Solicitante</div>
+                  <div class="card-subtitle" data-i18n="T1_CARD_CONTACT">Información de contacto</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-nombre"><span data-i18n="T1_LABEL_NAME">Nombre y Apellido</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <input class="form-input" id="t1-nombre" type="text" placeholder="Ej. Juan Pérez García" data-i18n-placeholder="PH_NAME"
+                  autocomplete="name" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-dni"><span data-i18n="T1_LABEL_DNI">Número de DNI</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <input class="form-input" id="t1-dni" type="number" placeholder="12345678" data-i18n-placeholder="PH_DNI" min="0" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-celular"><span data-i18n="T1_LABEL_PHONE">Número de Celular</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <input class="form-input" id="t1-celular" type="number" placeholder="9XXXXXXXX" data-i18n-placeholder="PH_PHONE" min="0" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-email"><span data-i18n="T1_LABEL_EMAIL">Correo Electrónico</span> <span
+                    class="optional" data-i18n="OPTIONAL">(opcional)</span></label>
+                <input class="form-input" id="t1-email" type="email" placeholder="correo@dominio.com" data-i18n-placeholder="PH_EMAIL" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><span data-i18n="T1_LABEL_DATE">Fecha y Hora del Incidente</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <div class="datetime-row">
+                  <input class="form-input" id="t1-fecha" type="date" />
+                  <input class="form-input" id="t1-hora" type="time" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-desc"><span data-i18n="T1_LABEL_DESC">Descripción</span> <span class="optional" data-i18n="OPTIONAL">(opcional)</span></label>
+                <textarea class="form-textarea" id="t1-desc" data-i18n-placeholder="PH_DESC"
+                  placeholder="Información adicional sobre el incidente…"></textarea>
+              </div>
+
+              <button class="btn-generate" id="btn-t1-generar" data-i18n="T1_BTN_GENERATE">
+                ⚡ Generar mi registro
+              </button>
+            </div>
+
+            <!-- Right: Datos de ubicación -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon">📍</div>
+                <div>
+                  <div class="card-title" data-i18n="T1_CARD_LOCATION">Ubicación y Entidad</div>
+                  <div class="card-subtitle" data-i18n="T1_CARD_CASCADE">Selectores dependientes en cascada</div>
+                </div>
+              </div>
+
+              <!-- Progress steps -->
+              <div class="cascade-steps">
+                <div class="cascade-step" id="t1-step-1" title="Región"></div>
+                <div class="cascade-step" id="t1-step-2" title="Provincia"></div>
+                <div class="cascade-step" id="t1-step-3" title="Localidad"></div>
+                <div class="cascade-step" id="t1-step-4" title="Tipo"></div>
+                <div class="cascade-step" id="t1-step-5" title="Entidad"></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">1. <span data-i18n="T1_LABEL_REGION">REGIÓN</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <select class="form-select" id="t1-region">
+                  <option value="" data-i18n="PH_SELECT_REGION">-- Seleccione Región --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-provincia">2. <span data-i18n="T1_LABEL_PROVINCE">PROVINCIA</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <select class="form-select" id="t1-provincia" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-localidad">3. <span data-i18n="T1_LABEL_LOCALITY">LOCALIDAD</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <select class="form-select" id="t1-localidad" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-tipo">4. <span data-i18n="T1_LABEL_TYPE">TIPO</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <select class="form-select" id="t1-tipo" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t1-institucion">5. <span data-i18n="T1_LABEL_ENTITY">ENTIDAD</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <select class="form-select" id="t1-institucion" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="btn-divider" data-i18n="T1_DIVIDER_FINAL">Paso final</div>
+
+              <button class="btn-finalize" id="btn-t1-finalizar" data-i18n="T1_BTN_FINISH">
+                ✓ Finalizar mi registro
+              </button>
+            </div>
+
+          </div>
+        </div><!-- /tab1 -->
+
+
+        <!-- ════════════════════════════════
+           TAB 2 – Entidades: Registro
+      ════════════════════════════════ -->
+        <div class="tab-pane" id="tab2">
+
+          <div class="page-header">
+            <div>
+              <h2 data-i18n="T2_TITLE">Registro — Entidades</h2>
+              <p data-i18n="T2_SUBTITLE">Visualiza y gestiona los tickets de incidencias de entidades.</p>
+            </div>
+            <button class="btn btn-outline" id="btn-t2-export" data-i18n="T2_BTN_EXPORT">⬇ Exportar Excel</button>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_SORT">Ordenar:</span>
+              <select id="t2-sort">
+                <option value="desc" data-i18n="T2_SORT_RECENT">Más reciente</option>
+                <option value="asc" data-i18n="T2_SORT_OLD">Más antiguo</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_STATUS">Estado:</span>
+              <select id="t2-filter-status">
+                <option value="all" data-i18n="T2_STATUS_ALL">Todos</option>
+                <option value="pendiente" data-i18n="T2_STATUS_PENDING">Pendiente</option>
+                <option value="confirmado" data-i18n="T2_STATUS_RESOLVED">Confirmado</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_REGION">Región:</span>
+              <select id="t2-filter-region">
+                <option value="" data-i18n="T2_ALL_REGIONS">Todas las regiones</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_DATE">Fecha:</span>
+              <input type="date" id="t2-filter-date" class="form-input" style="padding: 6px 10px; height: 32px;"
+                title="Filtrar por fecha">
+            </div>
+          </div>
+
+          <div class="ticket-list" id="t2-list">
+            <!-- Populated by Tab2.render() -->
+          </div>
+
+        </div><!-- /tab2 -->
+
+
+        <!-- ════════════════════════════════
+           TAB 6 – Entidades: Historial Tickets
+      ════════════════════════════════ -->
+        <div class="tab-pane" id="tab6">
+
+          <div class="page-header">
+            <div>
+              <h2 data-i18n="T6_TITLE">Tickets — Entidades</h2>
+              <p data-i18n="T6_SUBTITLE">Seguimiento detallado usando números de Complaint Center y Trouble Ticket.</p>
+            </div>
+
+            <button class="btn btn-outline" id="btn-t6-export" data-i18n="T2_BTN_EXPORT">⬇ Exportar Excel</button>
+          </div>
+
+          <!-- ── List View ── -->
+          <div id="t6-list-view">
+
+            <!-- KPI Summary Cards -->
+            <div class="t6-kpi-row">
+              <div class="t6-kpi-card" id="t6-kpi-abierto">
+                <div class="t6-kpi-main">
+                  <div class="t6-kpi-icon-label">
+                    <span class="t6-kpi-icon">🎫</span>
+                    <span data-i18n="T6_KPI_OPEN">Abiertos</span>
+                  </div>
+                  <div class="t6-kpi-value">0</div>
+                </div>
+              </div>
+
+              <div class="t6-kpi-card" id="t6-kpi-curso">
+                <div class="t6-kpi-main">
+                  <div class="t6-kpi-icon-label">
+                    <span class="t6-kpi-icon">⏱</span>
+                    <span data-i18n="T6_KPI_PROGRESS">En curso</span>
+                  </div>
+                  <div class="t6-kpi-value">0</div>
+                </div>
+              </div>
+
+              <div class="t6-kpi-card" id="t6-kpi-cerrado">
+                <div class="t6-kpi-main">
+                  <div class="t6-kpi-icon-label">
+                    <span class="t6-kpi-icon">✅</span>
+                    <span data-i18n="T6_KPI_CLOSED">Cerrados</span>
+                  </div>
+                  <div class="t6-kpi-value">0</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="T2_LABEL_SORT">Ordenar:</span>
+                <select id="t6-sort">
+                  <option value="desc" data-i18n="T2_SORT_RECENT">Más reciente</option>
+                  <option value="asc" data-i18n="T2_SORT_OLD">Más antiguo</option>
+                </select>
+              </div>
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="T2_LABEL_STATUS">Estado:</span>
+                <select id="t6-filter-status">
+                  <option value="all" data-i18n="T2_STATUS_ALL">Todos</option>
+                  <option value="Abierto" data-i18n="T6_KPI_OPEN">Abierto</option>
+                  <option value="En curso" data-i18n="T6_KPI_PROGRESS">En curso</option>
+                  <option value="Cerrado" data-i18n="T6_KPI_CLOSED">Cerrado</option>
+                </select>
+              </div>
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="T2_LABEL_REGION">Región:</span>
+                <select id="t6-filter-region">
+                  <option value="" data-i18n="T2_ALL_REGIONS">Todas las regiones</option>
+                </select>
+              </div>
+              <div class="toolbar-group">
+                <span class="toolbar-label" data-i18n="T2_LABEL_DATE">Fecha:</span>
+                <input type="date" id="t6-filter-date" class="form-input" style="padding: 6px 10px; height: 32px;"
+                  title="Filtrar por fecha">
+              </div>
+              <div class="toolbar-group" style="margin-left: auto; gap: 4px;">
+                <input type="text" id="t6-search" class="form-input" data-i18n-placeholder="T6_PH_SEARCH" placeholder="Buscar entidad, CC, TT..." style="width: 200px; padding: 6px 10px; height: 32px;">
+                <button class="btn btn-primary" id="t6-btn-search" data-i18n="T6_BTN_SEARCH" style="height: 32px; padding: 0 12px; font-size: 0.85rem;">🔍 Buscar</button>
+              </div>
+            </div>
+
+            <!-- Table wrapper -->
+            <div id="t6-table-wrapper">
+              <!-- Populated by Tab6.render() -->
+            </div>
+          </div><!-- /t6-list-view -->
+
+          <!-- ── Detail Inline View ── -->
+          <div id="t6-detail-inline" style="display:none">
+
+            <!-- Inline Header -->
+            <div class="t6-modal-header t6-inline-header">
+              <div class="t6-modal-header-left">
+                <button class="t6-back-btn" onclick="Tab6.closeModal()" title="Volver a la lista">← Volver</button>
+                <button class="btn btn-primary t6-btn-update" id="t6-btn-update-status" onclick="Tab6.openUpdateModal()">
+                  ↻ Actualizar
+                </button>
+              </div>
+              <div class="t6-modal-header-center">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+                  <h2 class="t6-modal-title" id="t6-modal-title">Entidad</h2>
+                  <div id="t6-header-status-badge"></div>
+                </div>
+                <div class="t6-modal-meta">
+                  <span>Creado por: <strong id="t6-modal-createdby">—</strong></span>
+                  <span class="t6-meta-sep">·</span>
+                  <span><strong id="t6-modal-createdat">—</strong></span>
+                </div>
+              </div>
+              <div class="t6-modal-header-right" id="t6-delete-container" style="margin-left: auto; display: none; align-items: center; gap: 10px;">
+                <button class="btn t6-btn-delete" id="t6-btn-delete-init" onclick="Tab6.initDelete()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">🗑️ Eliminar</button>
+                <div id="t6-delete-confirm-ui" style="display: none; align-items: center; gap: 8px;">
+                  <span style="font-size:0.85rem; color:var(--gray-700); font-weight:600;">¿Confirmar eliminación?</span>
+                  <button class="btn" onclick="Tab6.confirmDeleteTicket()" style="background:#fee2e2; color:#dc2626; border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Sí, eliminar</button>
+                  <button class="btn" onclick="Tab6.cancelDelete()" style="background:var(--gray-100); color:var(--gray-700); border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inline Body (scrollable) -->
+            <div class="t6-modal-body t6-inline-body">
+
+              <!-- 1. REGISTRO -->
+              <div class="t6-section-card">
+                <div class="t6-section-header">👤 Registro</div>
+                <div class="t6-reg-grid">
+                  <div class="t6-reg-field"><span class="t6-reg-label">Nombre Completo</span><span class="t6-reg-val" id="t6-reg-nombre">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">DNI</span><span class="t6-reg-val" id="t6-reg-dni">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Celular</span><span class="t6-reg-val" id="t6-reg-cel">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Tiempo de Inicio</span><span class="t6-reg-val" id="t6-reg-fecha">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Región</span><span class="t6-reg-val" id="t6-reg-region">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Provincia</span><span class="t6-reg-val" id="t6-reg-provincia">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Localidad</span><span class="t6-reg-val" id="t6-reg-localidad">—</span></div>
+                  <div class="t6-reg-field"><span class="t6-reg-label">Tipo</span><span class="t6-reg-val" id="t6-reg-tipo">—</span></div>
+                  <div class="t6-reg-field t6-reg-field-full">
+                    <span class="t6-reg-label">Descripción Reportada</span>
+                    <span class="t6-reg-val" id="t6-reg-desc">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. DETALLES TÉCNICOS (Modern Redesign) -->
+              <div class="t6-modern-grid" id="t6-detail-form">
+                <!-- Columna Izquierda: Clasificación -->
+                <div class="t6-modern-card" style="align-self: start;">
+                  <h4 class="t6-modern-title"><span class="t6-modern-icon">1</span> Clasificación</h4>
+                  
+                  <div class="form-group">
+                    <label class="form-label">Causa de incidencia</label>
+                    <div class="t6-cause-group t6-modern-radio-group">
+                      <button class="t6-cause-btn t6-modern-radio-btn" data-causa="fallo_red" onclick="Tab6.selectCausa(this)">
+                        <div class="t6-radio-icon">🌐</div>
+                        <div class="t6-radio-label">Fallo de red</div>
+                      </button>
+                      <button class="t6-cause-btn t6-modern-radio-btn" data-causa="falla_iao" onclick="Tab6.selectCausa(this)">
+                        <div class="t6-radio-icon">🔌</div>
+                        <div class="t6-radio-label">Falla IAO</div>
+                      </button>
+                      <button class="t6-cause-btn t6-modern-radio-btn" data-causa="incidentes" onclick="Tab6.selectCausa(this)">
+                        <div class="t6-radio-icon">⚠️</div>
+                        <div class="t6-radio-label">Incidentes</div>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group" id="t6-mensaje-group" style="display:none;">
+                    <label class="form-label">Lista de mensajes predeterminados</label>
+                    <div class="t6-msg-list" id="t6-mensaje-container">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label class="form-label">¿Incidencia resuelta remoto SOC?</label>
+                    <div class="t6-cause-group t6-modern-radio-group t6-soc-group">
+                      <button class="t6-soc-btn t6-modern-radio-btn" data-val="true" onclick="Tab6.selectSOC(this)">
+                        <div class="t6-radio-icon">✅</div>
+                        <div class="t6-radio-label">Sí</div>
+                      </button>
+                      <button class="t6-soc-btn t6-modern-radio-btn" data-val="false" onclick="Tab6.selectSOC(this)">
+                        <div class="t6-radio-icon">❌</div>
+                        <div class="t6-radio-label">No</div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Columna Derecha -->
+                <div class="t6-modern-col-right">
+                  
+                  <!-- Tarjeta 2: Notas SOC -->
+                  <div class="t6-modern-card">
+                    <h4 class="t6-modern-title"><span class="t6-modern-icon">2</span> Notas Técnicas</h4>
+                    <div class="form-group" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;">
+                        <label class="form-label">Observaciones del operador</label>
+                        <textarea class="form-textarea t6-modern-textarea" id="t6-desc-field" placeholder="Escribe observaciones técnicas, diagnóstico, pasos realizados..." disabled oninput="Tab6.markInteraction()"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- Tarjeta 3: Seguimiento -->
+                  <div class="t6-modern-card">
+                    <h4 class="t6-modern-title"><span class="t6-modern-icon">3</span> Tickets de Seguimiento</h4>
+                    <div class="t6-fields-row" style="margin-bottom: 0;">
+                      <div class="form-group t6-field-small">
+                        <label class="form-label">CC</label>
+                        <input type="text" class="form-input t6-modern-input" id="t6-cc-field" placeholder="Nº CC" oninput="Tab6.onCCInput()" disabled>
+                      </div>
+                      <div class="form-group t6-field-small">
+                        <label class="form-label">TT</label>
+                        <input type="text" class="form-input t6-modern-input" id="t6-tt-field" placeholder="Nº TT" oninput="Tab6.onTTInput()" disabled>
+                      </div>
+                      <div class="form-group t6-field-small">
+                        <label class="form-label">WO</label>
+                        <input type="text" class="form-input t6-modern-input" id="t6-wo-field" placeholder="Nº WO" disabled oninput="Tab6.markInteraction()">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Acciones -->
+                  <div class="t6-modern-actions">
+                    <button class="t6-btn-modern t6-btn-cancelar" id="t6-btn-cancelar" onclick="Tab6.cancelEdit()" style="display:none">✕ Cancelar</button>
+                    <button class="t6-btn-modern t6-btn-guardar" id="t6-btn-guardar" onclick="Tab6.saveDetails()" style="display:none">💾 Guardar Cambios</button>
+                    <button class="t6-btn-modern t6-btn-editar" id="t6-btn-editar" onclick="Tab6.enableEdit()">✏️ Habilitar Edición</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. CRONOGRAMA & MÉTRICAS -->
+              <div class="t6-section-card" id="t6-timeline-container">
+                <!-- Rendered by Tab6._renderTimeline() -->
+              </div>
+
+              <!-- 4. CRONOGRAMA DE ACTIVIDADES -->
+              <div class="t6-section-card">
+                <div class="t6-section-header">📋 Cronograma de actividades</div>
+                <div id="t6-activities-list">
+                  <em style="color:var(--gray-400);font-size:.85rem">Sin actividades registradas.</em>
+                </div>
+              </div>
+
+              <!-- 5. HISTORIAL DE INCIDENCIAS -->
+              <div class="t6-section-card">
+                <div class="t6-section-header">🗂 Historial de incidencias</div>
+                <div id="t6-history-wrapper">
+                  <em style="color:var(--gray-400);font-size:.85rem">Sin incidencias previas para esta entidad.</em>
+                </div>
+              </div>
+
+            </div><!-- /t6-inline-body -->
+          </div><!-- /t6-detail-inline -->
+
+        </div><!-- /tab6 -->
+
+
+        <!-- ════════════════════════════════
+           TAB 3 – SOC Nodos: Creación
+      ════════════════════════════════ -->
+        <div class="tab-pane" id="tab3">
+
+          <div class="page-header">
+            <div>
+              <h2 data-i18n="T3_TITLE">Creación de Registro — SOC Nodo</h2>
+              <p data-i18n="T3_SUBTITLE">Selecciona el nodo afectado y registra los detalles del incidente.</p>
+            </div>
+          </div>
+
+          <div id="t3-draft-badge" class="draft-badge hidden">
+            <span class="dot"></span>
+            Nodo seleccionado — completa los datos del incidente para finalizar
+          </div>
+
+          <div class="two-panel">
+
+            <!-- Left: Cascade nodos -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon">📡</div>
+                <div>
+                  <div class="card-title" data-i18n="T3_CARD_NODE">Datos del Nodo</div>
+                  <div class="card-subtitle" data-i18n="T3_CARD_CASCADE">Selectores AX / TX en cascada</div>
+                </div>
+              </div>
+
+              <!-- Progress steps -->
+              <div class="cascade-steps">
+                <div class="cascade-step" id="t3-step-1" title="Región" data-i18n-title="T1_LABEL_REGION"></div>
+                <div class="cascade-step" id="t3-step-2" title="Tipo de Nodo" data-i18n-title="T3_LABEL_NODE_TYPE"></div>
+                <div class="cascade-step" id="t3-step-3" title="Código" data-i18n-title="T3_LABEL_CODE"></div>
+                <div class="cascade-step" id="t3-step-4" title="Nombre" data-i18n-title="T3_LABEL_NODE_NAME"></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t3-region">1. <span data-i18n="T1_LABEL_REGION">Región</span> <span class="required">*</span></label>
+                <select class="form-select" id="t3-region">
+                  <option value="" data-i18n="PH_SELECT_REGION">-- Seleccione Región --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t3-tipo-nodo">2. <span data-i18n="T3_LABEL_NODE_TYPE">Tipo de Nodo</span> <span class="required">*</span></label>
+                <select class="form-select" id="t3-tipo-nodo" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t3-codigo">3. <span data-i18n="T3_LABEL_CODE">Código</span> <span class="required">*</span></label>
+                <select class="form-select" id="t3-codigo" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t3-nombre-nodo">4. <span data-i18n="T3_LABEL_NODE_NAME">Nombre del Nodo</span></label>
+                <input class="form-input" id="t3-nombre-nodo" type="text" readonly
+                  placeholder="Se autocompletará al seleccionar el código" data-i18n-placeholder="T3_PH_NODE_NAME"
+                  style="background:var(--gray-50);color:var(--gray-500);" />
+              </div>
+
+              <div class="btn-divider" data-i18n="DATA_READY">Datos listos</div>
+
+              <button class="btn-generate" id="btn-t3-generar" data-i18n="T3_BTN_GENERATE">
+                ⚡ Generar mi registro
+              </button>
+            </div>
+
+            <!-- Right: Datos de incidencia -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon">⚠️</div>
+                <div>
+                  <div class="card-title" data-i18n="T3_CARD_INCIDENT">Datos del Incidente</div>
+                  <div class="card-subtitle" data-i18n="T3_CARD_DETAILS">Detalles y características del evento</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><span data-i18n="T3_LABEL_DATE_INC">Fecha y Hora del Incidente</span> <span class="required">*</span></label>
+                <div class="datetime-row">
+                  <input class="form-input" id="t3-fecha-inc" type="date" />
+                  <input class="form-input" id="t3-hora-inc" type="time" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="T3_LABEL_DATE_REP">Fecha y Hora del Reporte</label>
+                <div class="datetime-row">
+                  <input class="form-input" id="t3-fecha-rep" type="date" />
+                  <input class="form-input" id="t3-hora-rep" type="time" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="T3_LABEL_DETECTED">Detectado por</label>
+                <div class="radio-group" id="t3-detectado">
+                  <label class="radio-btn">
+                    <input type="radio" name="detectado" value="tecnico" />
+                    👨‍🔧 <span data-i18n="T3_BTN_TECH">Técnico</span>
+                  </label>
+                  <label class="radio-btn">
+                    <input type="radio" name="detectado" value="soc" />
+                    🖥 <span data-i18n="T3_BTN_SOC">SOC</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="T3_LABEL_RECORDING">¿Hay grabación?</label>
+                <div class="radio-group" id="t3-grabacion">
+                  <label class="radio-btn">
+                    <input type="radio" name="grabacion" value="si" />
+                    ✅ <span data-i18n="T3_BTN_YES">Sí</span>
+                  </label>
+                  <label class="radio-btn">
+                    <input type="radio" name="grabacion" value="no" />
+                    ❌ <span data-i18n="T3_BTN_NO">No</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><span data-i18n="T3_LABEL_INCIDENT_TYPE">Tipo de Incidente</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+                <div class="check-group" id="t3-tipo-incidente">
+                  <!-- Populated by Tab3.init() -->
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="t3-desc"><span data-i18n="DETAIL_DESC">Descripción</span> <span class="optional" data-i18n="OPTIONAL">(opcional)</span></label>
+                <textarea class="form-textarea" id="t3-desc" data-i18n-placeholder="PH_DESC"
+                  placeholder="Información adicional sobre el incidente…"></textarea>
+              </div>
+
+              <div class="btn-divider" data-i18n="T1_DIVIDER_FINAL">Paso final</div>
+
+              <button class="btn-finalize" id="btn-t3-finalizar" data-i18n="T1_BTN_FINISH">
+                ✔ Finalizar mi registro
+              </button>
+            </div>
+
+          </div>
+        </div><!-- /tab3 -->
+
+
+        <!-- ════════════════════════════════
+           TAB 4 – SOC Nodos: Registro
+      ════════════════════════════════ -->
+        <div class="tab-pane" id="tab4">
+
+          <div class="page-header">
+            <div>
+              <h2 data-i18n="T4_TITLE">Registro — SOC Nodos</h2>
+              <p data-i18n="T4_SUBTITLE">Visualiza y gestiona los tickets de incidencias de nodos SOC.</p>
+            </div>
+            <button class="btn btn-outline" id="btn-t4-export" data-i18n="T2_BTN_EXPORT">⬇ Exportar Excel</button>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_SORT">Ordenar:</span>
+              <select id="t4-sort">
+                <option value="desc" data-i18n="T2_SORT_RECENT">Más reciente</option>
+                <option value="asc" data-i18n="T2_SORT_OLD">Más antiguo</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_STATUS">Estado:</span>
+              <select id="t4-filter-status">
+                <option value="all" data-i18n="T2_STATUS_ALL">Todos</option>
+                <option value="pendiente" data-i18n="T2_STATUS_PENDING">Pendiente</option>
+                <option value="confirmado" data-i18n="T2_STATUS_RESOLVED">Confirmado</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_REGION">Región:</span>
+              <select id="t4-filter-region">
+                <option value="" data-i18n="T2_ALL_REGIONS">Todas las regiones</option>
+              </select>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="T2_LABEL_DATE">Fecha:</span>
+              <input type="date" id="t4-filter-date" class="form-input" style="padding: 6px 10px; height: 32px;"
+                title="Filtrar por fecha">
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-label" data-i18n="DETAIL_TYPE">Tipo:</span>
+              <select id="t4-filter-tipo">
+                <option value="" data-i18n="ALL_TYPES">Todos los tipos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ticket-list" id="t4-list">
+            <!-- Populated by Tab4.render() -->
+          </div>
+
+        </div><!-- /tab4 -->
+
+
+        <!-- ════════════════════════════════
+           TAB 5 – Enlaces SOC
+      ════════════════════════════════ -->
+        <div class="tab-pane" id="tab5">
+
+          <div class="page-header enlaces-header">
+            <div>
+              <h2 data-i18n="T5_TITLE">Biblioteca — Enlaces SOC</h2>
+              <p data-i18n="T5_SUBTITLE">Bloque editable de enlaces y recursos del SOC.</p>
+            </div>
+            <button class="btn btn-primary" id="btn-t5-agregar" data-i18n="T5_BTN_ADD">
+              + Agregar información
+            </button>
+          </div>
+
+          <div class="card-grid" id="t5-grid">
+            <!-- Populated by Tab5.render() -->
+          </div>
+
+        </div><!-- /tab5 -->
+
+      </main><!-- /page-body -->
+    </div><!-- /main-content -->
+
+  </div><!-- /app-root -->
+
+  <!-- ═══════════════════════════
+     TAB 5 MODAL
+══════════════════════════════ -->
+  <div class="modal-overlay" id="modal-t5">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="T5_MODAL_TITLE">🔗 Agregar información</span>
+        <button class="modal-close" id="btn-t5-modal-close">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="t5-titulo"><span data-i18n="T5_LABEL_TITLE">Título</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+        <input class="form-input" id="t5-titulo" type="text" placeholder="Nombre del enlace o recurso" data-i18n-placeholder="T5_PH_TITLE" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="t5-descripcion" data-i18n="DETAIL_DESC">Descripción</label>
+        <textarea class="form-textarea" id="t5-descripcion" style="min-height:120px;" data-i18n-placeholder="T5_PH_DESC"
+          placeholder="Descripción del recurso. Los enlaces (https://…) se volverán clicables automáticamente."></textarea>
+      </div>
+
+      <div style="margin-top:8px;">
+        <button class="btn-finalize" id="btn-t5-finalizar" data-i18n="T1_BTN_FINISH">
+          ✔ Finalizar mi registro
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════
+     TOAST CONTAINER
+══════════════════════════════ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══════════════════════════
+       HISTORIAL DETAIL OVERLAY MODAL
+  ══════════════════════════════ -->
+  <div class="t6-hm-overlay" id="t6-hm-overlay" onclick="if(event.target===this)Tab6.closeHistorialModal()">
+    <div class="t6-hm-panel">
+      <!-- Header -->
+      <div class="t6-hm-header">
+        <div class="t6-hm-header-info">
+          <div class="t6-hm-badge">📂 Historial</div>
+          <h2 class="t6-hm-title" id="t6-hm-title">—</h2>
+          <div class="t6-hm-meta">
+            <span>Creado por: <strong id="t6-hm-createdby">—</strong></span>
+            <span class="t6-meta-sep">·</span>
+            <span><strong id="t6-hm-createdat">—</strong></span>
+          </div>
+        </div>
+        <button class="t6-hm-close" onclick="Tab6.closeHistorialModal()" title="Cerrar">✕</button>
+      </div>
+      <!-- Scrollable Body -->
+      <div class="t6-hm-body" id="t6-hm-body">
+        <!-- Rendered by Tab6.openHistorialModal() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       MODAL DETALLE TICKET (Tab6) – contenido movido a #t6-detail-inline dentro de #tab6
+  ══════════════════════════════════════════ -->
+  <div id="modal-t6-detail" style="display:none !important">
+    <div class="t6-modal-panel">
+
+      <!-- Modal Header -->
+      <div class="t6-modal-header">
+        <div class="t6-modal-header-left">
+          <button class="t6-modal-close" onclick="Tab6.closeModal()" title="Cerrar">✕</button>
+          <button class="btn btn-primary t6-btn-update" id="t6-btn-update-status" onclick="Tab6.openUpdateModal()">
+            ↻ Actualizar
+          </button>
+        </div>
+        <div class="t6-modal-header-center">
+          <h2 class="t6-modal-title" id="t6-modal-title">Entidad</h2>
+          <div class="t6-modal-meta">
+            <span>Creado por: <strong id="t6-modal-createdby">—</strong></span>
+            <span class="t6-meta-sep">·</span>
+            <span><strong id="t6-modal-createdat">—</strong></span>
+          </div>
+        </div>
+        <div class="t6-modal-header-right" id="t6-delete-container" style="margin-left: auto; display: none; align-items: center; gap: 10px;">
+          <button class="btn t6-btn-delete" id="t6-btn-delete-init" onclick="Tab6.initDelete()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">
+            🗑️ Eliminar
+          </button>
+          <div id="t6-delete-confirm-ui" style="display: none; align-items: center; gap: 8px;">
+            <span style="font-size:0.85rem; color:var(--gray-700); font-weight:600;">¿Confirmar eliminación?</span>
+            <button class="btn" onclick="Tab6.confirmDeleteTicket()" style="background:#fee2e2; color:#dc2626; border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Sí, eliminar</button>
+            <button class="btn" onclick="Tab6.cancelDelete()" style="background:var(--gray-100); color:var(--gray-700); border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body (scrollable) -->
+      <div class="t6-modal-body">
+
+        <!-- ── 1. REGISTRO ── -->
+        <div class="t6-section-card">
+          <div class="t6-section-header">👤 Registro</div>
+          <div class="t6-reg-grid">
+            <div class="t6-reg-field"><span class="t6-reg-label">Nombre Completo</span><span class="t6-reg-val" id="t6-reg-nombre">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">DNI</span><span class="t6-reg-val" id="t6-reg-dni">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Celular</span><span class="t6-reg-val" id="t6-reg-cel">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Tiempo de Inicio</span><span class="t6-reg-val" id="t6-reg-fecha">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Región</span><span class="t6-reg-val" id="t6-reg-region">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Provincia</span><span class="t6-reg-val" id="t6-reg-provincia">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Localidad</span><span class="t6-reg-val" id="t6-reg-localidad">—</span></div>
+            <div class="t6-reg-field"><span class="t6-reg-label">Tipo</span><span class="t6-reg-val" id="t6-reg-tipo">—</span></div>
+          </div>
+        </div>
+
+        <!-- ── 2. DETALLES TÉCNICOS ── -->
+        <div class="t6-section-card">
+          <div class="t6-section-header">⚙️ Detalles técnicos</div>
+          <div id="t6-detail-form">
+
+            <!-- Causa -->
+            <div class="form-group">
+              <label class="form-label">Causa de incidencia</label>
+              <div class="t6-cause-group">
+                <button class="t6-cause-btn" data-causa="fallo_red" onclick="Tab6.selectCausa(this)">Fallo de red</button>
+                <button class="t6-cause-btn" data-causa="falla_iao" onclick="Tab6.selectCausa(this)">Falla IAO</button>
+                <button class="t6-cause-btn" data-causa="incidentes" onclick="Tab6.selectCausa(this)">Incidentes</button>
+              </div>
+            </div>
+
+            <!-- Mensaje predeterminado -->
+            <div class="form-group">
+              <label class="form-label">Lista de mensajes predeterminados</label>
+              <div class="t6-msg-list" id="t6-mensaje-container">
+                <em style="color:var(--gray-400);font-size:.8rem">Selecciona una causa para ver opciones.</em>
+              </div>
+            </div>
+
+            <!-- ¿Resuelto remoto SOC? -->
+            <div class="form-group">
+              <label class="form-label">¿Incidencia resuelta remoto SOC?</label>
+              <div class="t6-cause-group">
+                <button class="t6-soc-btn" data-val="true" onclick="Tab6.selectSOC(this)">✅ Sí</button>
+                <button class="t6-soc-btn" data-val="false" onclick="Tab6.selectSOC(this)">❌ No</button>
+              </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="form-group">
+              <label class="form-label">Descripción</label>
+              <textarea class="form-textarea" id="t6-desc-field" placeholder="Escribe la descripción del incidente..." disabled></textarea>
+            </div>
+
+            <!-- CC / TT / WO -->
+            <div class="t6-fields-row">
+              <div class="form-group t6-field-small">
+                <label class="form-label">CC</label>
+                <input type="text" class="form-input" id="t6-cc-field" placeholder="Nº CC" oninput="Tab6.onCCInput()" disabled>
+              </div>
+              <div class="form-group t6-field-small">
+                <label class="form-label">TT</label>
+                <input type="text" class="form-input" id="t6-tt-field" placeholder="Nº TT" oninput="Tab6.onTTInput()" disabled>
+              </div>
+              <div class="form-group t6-field-small">
+                <label class="form-label">WO</label>
+                <input type="text" class="form-input" id="t6-wo-field" placeholder="Nº WO" disabled>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="t6-detail-actions">
+              <button class="btn btn-primary" id="t6-btn-guardar" onclick="Tab6.saveDetails()" style="display:none">💾 Guardar</button>
+              <button class="btn btn-secondary" id="t6-btn-cancelar" onclick="Tab6.cancelEdit()" style="display:none">✕ Cancelar</button>
+              <button class="btn btn-outline" id="t6-btn-editar" onclick="Tab6.enableEdit()">✏️ Editar</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── 3. CRONOGRAMA & MÉTRICAS ── -->
+        <div class="t6-section-card" id="t6-timeline-container">
+          <!-- Rendered by Tab6._renderTimeline() -->
+        </div>
+
+        <!-- ── 4. CRONOGRAMA DE ACTIVIDADES ── -->
+        <div class="t6-section-card">
+          <div class="t6-section-header">📋 Cronograma de actividades</div>
+          <div id="t6-activities-list">
+            <em style="color:var(--gray-400);font-size:.85rem">Sin actividades registradas.</em>
+          </div>
+        </div>
+
+        <!-- ── 5. HISTORIAL DE INCIDENCIAS ── -->
+        <div class="t6-section-card">
+          <div class="t6-section-header">🗂 Historial de incidencias</div>
+          <div id="t6-history-wrapper">
+            <em style="color:var(--gray-400);font-size:.85rem">Sin incidencias previas para esta entidad.</em>
+          </div>
+        </div>
+
+      </div><!-- /t6-modal-body -->
+    </div><!-- /t6-modal-panel -->
+  </div><!-- /modal-t6-detail -->
+
+
+  <!-- ═══════════════════════════════════════
+       SUB-MODAL: ACTUALIZAR ESTADO (Tab6)
+  ══════════════════════════════════════════ -->
+  <div class="t6-modal-overlay t6-submodal-overlay" id="modal-t6-update">
+    <div class="t6-submodal-panel">
+      <div class="t6-submodal-header">
+        <h3>Actualizar el estado del incidente</h3>
+        <button class="t6-modal-close" onclick="Tab6.closeUpdateModal()">✕</button>
+      </div>
+      <p class="t6-submodal-sub">Cambia el estado del incidente y añade un comentario.</p>
+
+      <div class="form-group">
+        <label class="form-label">Nuevo estado</label>
+        <select class="form-select" id="t6-upd-status">
+          <option value="Abierto">Abierto</option>
+          <option value="En curso">En curso</option>
+          <option value="Cerrado">Cerrado</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comentario</label>
+        <textarea class="form-textarea" id="t6-upd-comment" placeholder="Añade una nota sobre este cambio..." style="min-height:100px"></textarea>
+        <span style="font-size:.75rem;color:var(--red-500);margin-top:4px;display:block">Este campo es obligatorio.</span>
+      </div>
+
+      <div class="t6-submodal-actions">
+        <button class="btn btn-secondary" onclick="Tab6.closeUpdateModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="Tab6.submitUpdate()">Estado de actualización</button>
+      </div>
+    </div>
+  </div><!-- /modal-t6-update -->
+
+  <!-- ═══════════════════════════
+     SCRIPTS
+══════════════════════════════ -->
+  <!-- xlsx-js-style CDN for styled Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <!-- Chart.js CDN for interactive Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Supabase JS v2 (must be before supabase.js) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  
+  <!-- i18n system -->
+  <script src="js/i18n.js"></script>
+
+  <!-- Core App JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+
+  <!-- App scripts (order matters) -->
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/tab1.js"></script>
+  <script src="js/tab2.js"></script>
+  <script src="js/tab3.js"></script>
+  <script src="js/tab4.js"></script>
+  <script src="js/tab5.js"></script>
+  <script src="js/tab6.js"></script>
+  <script src="js/tabDashboard.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+
+</html>
