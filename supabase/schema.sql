@@ -2,7 +2,17 @@
 --  IBBS – Gestión de Incidencias  |  Supabase Schema
 --  Run this once in your Supabase project:
 --    Dashboard → SQL Editor → paste & run
+
+--comentarios
 -- ══════════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
 
 
 -- ── 1. tickets_entidades (Tab 1 / Tab 2 / Tab 6) ──────────
