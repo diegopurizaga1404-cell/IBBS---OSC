@@ -8,18 +8,90 @@ const Tab6 = (() => {
     const PAGE_SIZE = 15;
     let _allTickets = [];
     let _activeId = null;
-    let _editMode = false;
+    let _editModeSOC = false;
+    let _editModeOM = false;
 
-    // ── LocalStorage helpers for extended fields ─────────────
+    // ── Supabase-backed helpers for extended fields ─────────────
     function _getExt(id) {
-        try { return JSON.parse(localStorage.getItem('ibbs_ext_' + id) || '{}'); }
-        catch { return {}; }
+        const t = _allTickets.find(tk => tk.id === id);
+        if (!t) return {};
+        const acts = t.actividades;
+        return {
+            estado: t.estado || 'Abierto',
+            causaIncidencia: t.causaIncidencia,
+            mensajePredeterminado: t.mensajePredeterminado,
+            resueltoRemotoSoc: t.resueltoRemotoSoc,
+            woNumber: t.woNumber,
+            cerradoPor: t.cerradoPor,
+            fechaCierre: t.fechaCierre,
+            equipoRegistro: t.equipoRegistro,
+            equipoResolutor: t.equipoResolutor,
+            actividades: acts ? (typeof acts === 'string' ? JSON.parse(acts) : acts) : [],
+            omHoraContacto: t.omHoraContacto,
+            omDiaVisita: t.omDiaVisita,
+            causaTs: t.causaTs,
+            ccTs: t.ccTs,
+            ttTs: t.ttTs,
+            woTs: t.woTs,
+            omHoraTs: t.omHoraTs,
+            omVisitaTs: t.omVisitaTs,
+        };
     }
-    function _setExt(id, data) {
+    async function _setExt(id, data) {
+        // Update local cache immediately
+        const t = _allTickets.find(tk => tk.id === id);
+        if (t) Object.assign(t, data);
+        // Persist to Supabase
         try {
-            const cur = _getExt(id);
-            localStorage.setItem('ibbs_ext_' + id, JSON.stringify({ ...cur, ...data }));
-        } catch {}
+            await Store.updateTicket('entidades', id, data);
+        } catch (e) {
+            console.error('Error saving ext data to Supabase:', e);
+        }
+    }
+
+    // ── One-time migration: localStorage → Supabase ──────────
+    async function _migrateLocalStorage() {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('ibbs_ext_')) keys.push(k);
+        }
+        if (!keys.length) return;
+        console.log(`[IBBS] Migrating ${keys.length} localStorage entries to Supabase...`);
+        
+        const validKeys = [
+            'estado', 'causaIncidencia', 'mensajePredeterminado', 'resueltoRemotoSoc',
+            'woNumber', 'cerradoPor', 'fechaCierre', 'equipoRegistro', 'equipoResolutor',
+            'actividades', 'omHoraContacto', 'omDiaVisita', 'causaTs', 'ccTs', 'ttTs',
+            'woTs', 'omHoraTs', 'omVisitaTs'
+        ];
+
+        for (const k of keys) {
+            const id = k.replace('ibbs_ext_', '');
+            try {
+                const rawData = JSON.parse(localStorage.getItem(k) || '{}');
+                const cleanData = {};
+                
+                // Map old keys to new if needed
+                if (rawData.omHora && !rawData.omHoraContacto) cleanData.omHoraContacto = rawData.omHora;
+                if (rawData.omVisita && !rawData.omDiaVisita) cleanData.omDiaVisita = rawData.omVisita;
+                if (rawData.resSOC !== undefined && rawData.resueltoRemotoSoc === undefined) cleanData.resueltoRemotoSoc = rawData.resSOC;
+                
+                // Only keep valid columns
+                for (const vk of validKeys) {
+                    if (rawData[vk] !== undefined) cleanData[vk] = rawData[vk];
+                }
+
+                if (Object.keys(cleanData).length) {
+                    await Store.updateTicket('entidades', id, cleanData);
+                }
+                localStorage.removeItem(k);
+                console.log(`[IBBS] Migrated: ${id}`);
+            } catch (e) {
+                console.warn(`[IBBS] Failed to migrate ${id}:`, e);
+            }
+        }
+        console.log('[IBBS] Migration complete.');
     }
 
     // ── Delete Ticket ────────────────────────────────────────
@@ -52,9 +124,11 @@ const Tab6 = (() => {
     }
 
     // ── Init ─────────────────────────────────────────────────
-    function init() {
+    async function init() {
         _bindControls();
         window.addEventListener('langChanged', () => render());
+        // Migrate localStorage data to Supabase (runs once)
+        await _migrateLocalStorage();
     }
 
     // ── Render table ─────────────────────────────────────────
@@ -151,8 +225,10 @@ const Tab6 = (() => {
               <td>${ext.woNumber || t.woNumber || '—'}</td>
               <td>${ext.equipoRegistro || t.createdBy || '—'}</td>
               <td>${_calcTeam(t, ext)}</td>
+              <td style="text-align: center;">${ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—'}</td>
+              <td style="text-align: center;">${ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—'}</td>
               <td>${ext.fechaCierre ? _fmtFull(ext.fechaCierre) : (t.fechaCierre ? _fmtFull(t.fechaCierre) : '—')}</td>
-              <td>${dur}</td>
+              <td style="text-align: center;">${dur}</td>
               <td class="t6-desc-cell" title="${(t.socDetalles||t.descripcion||'').replace(/"/g,'&quot;')}">${t.socDetalles || t.descripcion || '—'}</td>
             </tr>`;
         }).join('');
@@ -170,8 +246,10 @@ const Tab6 = (() => {
               <th>WO</th>
               <th>${I18n.translate('T6_COL_TEAM_REG')}</th>
               <th>${I18n.translate('T6_COL_TEAM_RES')}</th>
+              <th style="text-align: center;">${I18n.translate('T6_COL_LLAMADA_ENTIDAD').toUpperCase()}</th>
+              <th style="text-align: center;">${I18n.translate('T6_COL_VISITA_PREVISTA').toUpperCase()}</th>
               <th>${I18n.translate('T6_COL_CLOSE_TIME')}</th>
-              <th>${I18n.translate('T6_COL_DURATION')}</th>
+              <th style="text-align: center;">${I18n.translate('T6_COL_DURATION')}</th>
               <th>${I18n.translate('DETAIL_DESC')}</th>
             </tr></thead>
             <tbody>${rows}</tbody>
@@ -251,15 +329,15 @@ const Tab6 = (() => {
 
     function _calcTeam(t, ext) {
         const wo = ext.woNumber || t.woNumber;
-        const tt = t.ttNumber || ext.ttNumber;
         if (wo) return 'Team O&M';
-        if (tt) return 'Team OSC';
-        return '—';
+        return 'Team OSC';
     }
 
     function _fmtFull(iso) {
         if (!iso) return '—';
+        if (iso === 'N/A') return 'N/A';
         const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
         // Formato: DD/MM/YYYY HH:mm (24h)
         const day = String(d.getDate()).padStart(2, '0');
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -294,15 +372,21 @@ const Tab6 = (() => {
     }
 
     // ── INTERACTION STATE ───────────────────────────────────────
-    let _hasSavedData = false;
-    let _isInteracting = false;
+    let _hasSavedDataSOC = false;
+    let _hasSavedDataOM = false;
+    let _isInteractingSOC = false;
+    let _isInteractingOM = false;
 
-    function markInteraction() {
-        if (!_isInteracting) _isInteracting = true;
-        _updateFormButtons();
+    function markInteractionSOC() {
+        _isInteractingSOC = true;
+        _updateFormButtonsSOC();
     }
 
-    function _hasAnyDetail(t, ext) {
+    function markInteractionOM() {
+        if (!_isInteractingOM) { _isInteractingOM = true; _updateFormButtonsOM(); }
+    }
+
+    function _hasAnyDetailSOC(t, ext) {
         const causa = ext.causaIncidencia || t.causaIncidencia || '';
         const resSOC = ext.resueltoRemotoSoc != null ? ext.resueltoRemotoSoc : t.resueltoRemotoSoc;
         const desc = t.socDetalles || '';
@@ -311,30 +395,42 @@ const Tab6 = (() => {
         return !!(causa || (resSOC !== null && resSOC !== undefined) || desc.trim() || cc.trim() || wo.trim());
     }
 
+    function _hasAnyDetailOM(t, ext) {
+        return !!(ext.omHoraContacto || ext.omDiaVisita || ext.omHora || ext.omVisita);
+    }
+
     // ── OPEN / CLOSE DETAIL (inline swap) ───────────────────────
     function openModal(id) {
-        const t = _allTickets.find(tk => tk.id === id);
-        if (!t) return;
-        _activeId = id;
-        _editMode = false;
-        
-        const ext = _getExt(t.id);
-        _hasSavedData = _hasAnyDetail(t, ext);
-        _isInteracting = false;
-        
-        _populateModal(t, ext);
+        try {
+            const t = _allTickets.find(tk => tk.id === id);
+            if (!t) return;
+            _activeId = id;
+            _editModeSOC = false;
+            _editModeOM = false;
+            
+            const ext = _getExt(t.id);
+            _hasSavedDataSOC = _hasAnyDetailSOC(t, ext);
+            _hasSavedDataOM = _hasAnyDetailOM(t, ext);
+            _isInteractingSOC = false;
+            _isInteractingOM = false;
+            
+            _populateModal(t, ext);
 
-        const deleteContainer = document.getElementById('t6-delete-container');
-        if (deleteContainer) {
-            deleteContainer.style.display = Auth.isAdmin() ? 'flex' : 'none';
-            document.getElementById('t6-btn-delete-init').style.display = 'inline-block';
-            document.getElementById('t6-delete-confirm-ui').style.display = 'none';
+            const deleteContainer = document.getElementById('t6-delete-container');
+            if (deleteContainer) {
+                deleteContainer.style.display = Auth.isAdmin() ? 'flex' : 'none';
+                document.getElementById('t6-btn-delete-init').style.display = 'inline-block';
+                document.getElementById('t6-delete-confirm-ui').style.display = 'none';
+            }
+
+            // Swap: hide list, show inline detail
+            document.getElementById('t6-list-view').style.display = 'none';
+            document.getElementById('t6-detail-inline').style.display = 'flex';
+            window.scrollTo(0, 0);
+        } catch (e) {
+            alert("Error in openModal: " + e.stack);
+            console.error(e);
         }
-
-        // Swap: hide list, show inline detail
-        document.getElementById('t6-list-view').style.display = 'none';
-        document.getElementById('t6-detail-inline').style.display = 'flex';
-        window.scrollTo(0, 0);
     }
 
     function closeModal() {
@@ -363,6 +459,7 @@ const Tab6 = (() => {
         document.getElementById('t6-reg-nombre').textContent = t.nombre || '—';
         document.getElementById('t6-reg-dni').textContent = t.dni || '—';
         document.getElementById('t6-reg-cel').textContent = t.cel || '—';
+        document.getElementById('t6-reg-email').textContent = t.email || '—';
         document.getElementById('t6-reg-fecha').textContent = (t.fechaInc || '—') + ' ' + (t.horaInc || '');
         document.getElementById('t6-reg-region').textContent = t.region || '—';
         document.getElementById('t6-reg-provincia').textContent = t.provincia || '—';
@@ -386,7 +483,61 @@ const Tab6 = (() => {
         document.getElementById('t6-tt-field').value = t.ttNumber || '';
         document.getElementById('t6-wo-field').value = wo;
 
-        _setFieldsLocked(_hasSavedData);
+        // Populating O&M
+        const omHora = ext.omHoraContacto || '';
+        const omVisita = ext.omDiaVisita || '';
+        const inputHoraFecha = document.getElementById('t6-om-hora-contacto-fecha');
+        const inputHoraHora = document.getElementById('t6-om-hora-contacto-hora');
+        const inputVisitaFecha = document.getElementById('t6-om-dia-visita-fecha');
+        const inputVisitaHora = document.getElementById('t6-om-dia-visita-hora');
+        
+        if (inputHoraFecha && inputHoraHora && inputVisitaFecha && inputVisitaHora) {
+            let omHoraFecha = '';
+            let omHoraHora = '';
+            if (omHora === 'N/A') {
+                omHoraFecha = 'N/A';
+                omHoraHora = 'N/A';
+            } else if (omHora.includes('T')) {
+                const parts = omHora.split('T');
+                omHoraFecha = parts[0];
+                omHoraHora = parts[1];
+            } else {
+                omHoraFecha = omHora;
+            }
+
+            let omVisitaFecha = '';
+            let omVisitaHora = '';
+            if (omVisita === 'N/A') {
+                omVisitaFecha = 'N/A';
+                omVisitaHora = 'N/A';
+            } else if (omVisita.includes('T')) {
+                const parts = omVisita.split('T');
+                omVisitaFecha = parts[0];
+                omVisitaHora = parts[1];
+            } else {
+                omVisitaFecha = omVisita;
+            }
+
+            inputHoraFecha.dataset.savedValue = (omHoraFecha !== 'N/A') ? omHoraFecha : '';
+            inputHoraHora.dataset.savedValue = (omHoraHora !== 'N/A') ? omHoraHora : '';
+            inputVisitaFecha.dataset.savedValue = (omVisitaFecha !== 'N/A') ? omVisitaFecha : '';
+            inputVisitaHora.dataset.savedValue = (omVisitaHora !== 'N/A') ? omVisitaHora : '';
+            
+            if (resSOC === true) {
+                inputHoraFecha.type = 'text'; inputHoraFecha.value = 'N/A';
+                inputHoraHora.type = 'text';  inputHoraHora.value = 'N/A';
+                inputVisitaFecha.type = 'text'; inputVisitaFecha.value = 'N/A';
+                inputVisitaHora.type = 'text';  inputVisitaHora.value = 'N/A';
+            } else {
+                inputHoraFecha.type = 'date'; inputHoraFecha.value = (omHoraFecha === 'N/A') ? '' : omHoraFecha;
+                inputHoraHora.type = 'time';  inputHoraHora.value = (omHoraHora === 'N/A') ? '' : omHoraHora;
+                inputVisitaFecha.type = 'date'; inputVisitaFecha.value = (omVisitaFecha === 'N/A') ? '' : omVisitaFecha;
+                inputVisitaHora.type = 'time';  inputVisitaHora.value = (omVisitaHora === 'N/A') ? '' : omVisitaHora;
+            }
+        }
+
+        _setFieldsLockedSOC(_hasSavedDataSOC);
+        _setFieldsLockedOM(_hasSavedDataOM);
         _renderTimeline(t, ext);
         _renderActivities(actividades);
         _renderHistory(t);
@@ -403,7 +554,7 @@ const Tab6 = (() => {
         document.querySelectorAll('.t6-cause-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         _renderMensajes(btn.dataset.causa, '');
-        markInteraction();
+        markInteractionSOC();
     }
 
     function _renderMensajes(causa, selected) {
@@ -417,46 +568,98 @@ const Tab6 = (() => {
         }
         if (grp) grp.style.display = 'block';
         c.innerHTML = list.map(m => `<label class="t6-msg-option">
-            <input type="radio" name="t6-msg" value="${m}" ${selected === m ? 'checked' : ''} onchange="Tab6.markInteraction()">
+            <input type="radio" name="t6-msg" value="${m}" ${selected === m ? 'checked' : ''} onchange="Tab6.markInteractionSOC()">
             <span>${m}</span></label>`).join('');
     }
 
     function selectSOC(btn) {
         document.querySelectorAll('.t6-soc-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        markInteraction();
+        _updateOMFields();
+        markInteractionSOC();
+    }
+
+    function onOMInput(input) {
+        input.dataset.savedValue = input.value;
+        markInteractionOM();
+    }
+
+    function _updateOMFields() {
+        const socBtn = document.querySelector('.t6-soc-btn.active');
+        const resSOC = socBtn ? socBtn.dataset.val === 'true' : null;
+        
+        const inputHoraFecha = document.getElementById('t6-om-hora-contacto-fecha');
+        const inputHoraHora = document.getElementById('t6-om-hora-contacto-hora');
+        const inputVisitaFecha = document.getElementById('t6-om-dia-visita-fecha');
+        const inputVisitaHora = document.getElementById('t6-om-dia-visita-hora');
+        if (!inputHoraFecha || !inputHoraHora || !inputVisitaFecha || !inputVisitaHora) return;
+
+        const formLocked = _hasSavedDataOM && !_editModeOM;
+
+        const updateField = (el, typeName) => {
+            el.disabled = formLocked || (resSOC === true);
+            if (resSOC === true) {
+                el.type = 'text';
+                el.value = 'N/A';
+            } else if (formLocked) {
+                el.type = 'text';
+                el.value = el.dataset.savedValue || '';
+            } else {
+                const currentVal = el.value;
+                el.type = typeName;
+                el.value = (el.type === typeName && currentVal && currentVal !== 'N/A') ? currentVal : (el.dataset.savedValue || '');
+            }
+        };
+
+        updateField(inputHoraFecha, 'date');
+        updateField(inputHoraHora, 'time');
+        updateField(inputVisitaFecha, 'date');
+        updateField(inputVisitaHora, 'time');
     }
 
     // ── Field chain ───────────────────────────────────────────
     function onCCInput() {
-        markInteraction();
+        markInteractionSOC();
         const cc = document.getElementById('t6-cc-field').value.trim();
         const ttF = document.getElementById('t6-tt-field');
         ttF.disabled = !cc;
         if (!cc) { ttF.value = ''; document.getElementById('t6-wo-field').disabled = true; document.getElementById('t6-wo-field').value = ''; }
+        _updateFormButtonsSOC();
     }
 
     function onTTInput() {
-        markInteraction();
+        markInteractionSOC();
         const tt = document.getElementById('t6-tt-field').value.trim();
         const woF = document.getElementById('t6-wo-field');
         woF.disabled = !tt;
         if (!tt) woF.value = '';
+        _updateFormButtonsSOC();
     }
 
     // ── Lock/Unlock fields ────────────────────────────────────
-    function _updateFormButtons() {
-        const btnGuardar = document.getElementById('t6-btn-guardar');
-        const btnCancelar = document.getElementById('t6-btn-cancelar');
-        const btnEditar = document.getElementById('t6-btn-editar');
+    function _updateFormButtonsSOC() {
+        const btnGuardar = document.getElementById('t6-btn-guardar-soc');
+        const btnCancelar = document.getElementById('t6-btn-cancelar-soc');
+        const btnEditar = document.getElementById('t6-btn-editar-soc');
+        
         const cc = document.getElementById('t6-cc-field').value.trim();
+        const tt = document.getElementById('t6-tt-field').value.trim();
+        const wo = document.getElementById('t6-wo-field').value.trim();
+        
+        const causaActive = document.querySelector('.t6-cause-btn.active');
+        const socActive = document.querySelector('.t6-soc-btn.active');
+        const msgGroup = document.getElementById('t6-mensaje-group');
+        const msgChecked = document.querySelector('input[name="t6-msg"]:checked');
+        const msgValid = (msgGroup && msgGroup.style.display !== 'none') ? !!msgChecked : true;
+        
+        const allValid = causaActive && msgValid && socActive && cc;
 
-        if (_isInteracting) {
+        if (_isInteractingSOC) {
             btnGuardar.style.display = 'inline-flex';
             btnCancelar.style.display = 'inline-flex';
             btnEditar.style.display = 'none';
 
-            if (!cc) {
+            if (!allValid) {
                 btnGuardar.disabled = true;
                 btnGuardar.style.opacity = '0.5';
                 btnGuardar.style.cursor = 'not-allowed';
@@ -468,11 +671,30 @@ const Tab6 = (() => {
         } else {
             btnGuardar.style.display = 'none';
             btnCancelar.style.display = 'none';
-            btnEditar.style.display = _hasSavedData ? 'inline-flex' : 'none';
+            btnEditar.style.display = _hasSavedDataSOC ? 'inline-flex' : 'none';
         }
     }
 
-    function _setFieldsLocked(locked) {
+    function _updateFormButtonsOM() {
+        const btnGuardar = document.getElementById('t6-btn-guardar-om');
+        const btnCancelar = document.getElementById('t6-btn-cancelar-om');
+        const btnEditar = document.getElementById('t6-btn-editar-om');
+
+        if (_isInteractingOM) {
+            btnGuardar.style.display = 'inline-flex';
+            btnCancelar.style.display = 'inline-flex';
+            btnEditar.style.display = 'none';
+            btnGuardar.disabled = false;
+            btnGuardar.style.opacity = '1';
+            btnGuardar.style.cursor = 'pointer';
+        } else {
+            btnGuardar.style.display = 'none';
+            btnCancelar.style.display = 'none';
+            btnEditar.style.display = _hasSavedDataOM ? 'inline-flex' : 'none';
+        }
+    }
+
+    function _setFieldsLockedSOC(locked) {
         const cc = document.getElementById('t6-cc-field').value.trim();
         const tt = document.getElementById('t6-tt-field').value.trim();
         document.getElementById('t6-desc-field').disabled = locked;
@@ -486,27 +708,50 @@ const Tab6 = (() => {
         });
         document.querySelectorAll('.t6-msg-option input').forEach(inp => inp.disabled = locked);
         
-        _updateFormButtons();
+        _updateFormButtonsSOC();
+        _updateOMFields();
     }
 
-    function enableEdit() { 
-        _editMode = true; 
-        _isInteracting = true;
-        _setFieldsLocked(false); 
+    function _setFieldsLockedOM(locked) {
+        _updateOMFields();
+        _updateFormButtonsOM();
     }
 
-    function cancelEdit() {
-        _editMode = false;
-        _isInteracting = false;
+    function enableEditSOC() { 
+        _editModeSOC = true; 
+        _isInteractingSOC = true;
+        _setFieldsLockedSOC(false); 
+    }
+
+    function cancelEditSOC() {
+        _editModeSOC = false;
+        _isInteractingSOC = false;
         const t = _allTickets.find(tk => tk.id === _activeId);
         if (t) {
             const ext = _getExt(t.id);
-            _hasSavedData = _hasAnyDetail(t, ext);
+            _hasSavedDataSOC = _hasAnyDetailSOC(t, ext);
             _populateModal(t, ext);
         }
     }
 
-    async function saveDetails() {
+    function enableEditOM() { 
+        _editModeOM = true; 
+        _isInteractingOM = true;
+        _setFieldsLockedOM(false); 
+    }
+
+    function cancelEditOM() {
+        _editModeOM = false;
+        _isInteractingOM = false;
+        const t = _allTickets.find(tk => tk.id === _activeId);
+        if (t) {
+            const ext = _getExt(t.id);
+            _hasSavedDataOM = _hasAnyDetailOM(t, ext);
+            _populateModal(t, ext);
+        }
+    }
+
+    async function saveDetailsSOC() {
         if (!_activeId) return;
         const t = _allTickets.find(tk => tk.id === _activeId);
         if (!t) return;
@@ -526,7 +771,8 @@ const Tab6 = (() => {
 
         const now = new Date().toISOString();
         const prevExt = _getExt(_activeId);
-        _setExt(_activeId, {
+
+        await _setExt(_activeId, {
             causaIncidencia:       causa,
             mensajePredeterminado: msgPred,
             resueltoRemotoSoc:     resSOC,
@@ -535,39 +781,97 @@ const Tab6 = (() => {
             ccTs:     cc     ? (prevExt.ccTs     || now) : null,
             ttTs:     tt     ? (prevExt.ttTs     || now) : null,
             woTs:     (wo || resSOC) ? (prevExt.woTs || now) : null,
+            estado:   'En curso'
         });
 
         const user = Auth.getUser();
         const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
-        _addActivity(_activeId, {
+        const oldStatus = prevExt.estado || 'Abierto';
+        
+        await _addActivity(_activeId, {
             tipo: 'Actualizado',
             autor: userName,
             fecha: new Date().toISOString(),
-            descripcion: `Causa: ${causa || '—'} | Mensaje: ${msgPred || '—'} | CC: ${cc||'—'} | TT: ${tt||'—'} | WO: ${wo||'—'}`,
+            descripcion: 'diagnostico tecnico inicial',
+            cambioEstado: `${oldStatus} → En curso`,
         });
 
-        _editMode = false;
-        _isInteracting = false;
-        _hasSavedData = true;
-        _setFieldsLocked(true);
+        _editModeSOC = false;
+        _isInteractingSOC = false;
+        _hasSavedDataSOC = true;
+        _setFieldsLockedSOC(true);
 
         // Re-fetch and re-render
-        _allTickets = await Store.getTickets('entidades');
         const updated = _allTickets.find(tk => tk.id === _activeId);
         if (updated) {
             const ext2 = _getExt(_activeId);
-            _renderTimeline(updated, ext2);
-            _renderActivities(ext2.actividades || []);
+            _populateModal(updated, ext2);
         }
         await render();
-        Toast.show('Cambios guardados.', 'success');
+        Toast.show('Detalles SOC guardados.', 'success');
     }
 
-    function _addActivity(id, activity) {
+    async function saveDetailsOM() {
+        if (!_activeId) return;
+        const t = _allTickets.find(tk => tk.id === _activeId);
+        if (!t) return;
+
+        const socBtn = document.querySelector('.t6-soc-btn.active');
+        const resSOC = socBtn ? socBtn.dataset.val === 'true' : null;
+
+        // Always read input values regardless of SOC state
+        const dateH = document.getElementById('t6-om-hora-contacto-fecha')?.value || '';
+        const timeH = document.getElementById('t6-om-hora-contacto-hora')?.value || '';
+        const dateV = document.getElementById('t6-om-dia-visita-fecha')?.value || '';
+        const timeV = document.getElementById('t6-om-dia-visita-hora')?.value || '';
+
+        let omHora = '';
+        let omVisita = '';
+        if (resSOC === true) {
+            omHora = 'N/A';
+            omVisita = 'N/A';
+        } else {
+            omHora = (dateH || timeH) ? `${dateH}T${timeH}` : '';
+            omVisita = (dateV || timeV) ? `${dateV}T${timeV}` : '';
+        }
+
+        const prevExt = _getExt(_activeId);
+        const now = new Date().toISOString();
+
+        await _setExt(_activeId, {
+            omHoraContacto:        omHora,
+            omDiaVisita:           omVisita,
+            omHoraTs:              omHora ? (prevExt.omHoraTs || now) : null,
+            omVisitaTs:            omVisita ? (prevExt.omVisitaTs || now) : null
+        });
+
+        const user = Auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
+        await _addActivity(_activeId, {
+            tipo: 'Actualizado',
+            autor: userName,
+            fecha: new Date().toISOString(),
+            descripcion: `Actualización O&M - Contacto: ${omHora||'—'} | Visita: ${omVisita||'—'}`,
+        });
+
+        _editModeOM = false;
+        _isInteractingOM = false;
+        const updated = _allTickets.find(tk => tk.id === _activeId);
+        if (updated) {
+            const ext2 = _getExt(_activeId);
+            _hasSavedDataOM = _hasAnyDetailOM(updated, ext2);
+            _setFieldsLockedOM(_hasSavedDataOM);
+            _populateModal(updated, ext2);
+        }
+        await render();
+        Toast.show('Datos O&M guardados.', 'success');
+    }
+
+    async function _addActivity(id, activity) {
         const ext = _getExt(id);
-        const acts = Array.isArray(ext.actividades) ? ext.actividades : [];
+        const acts = Array.isArray(ext.actividades) ? [...ext.actividades] : [];
         acts.unshift(activity);
-        _setExt(id, { actividades: acts });
+        await _setExt(id, { actividades: acts });
     }
 
     // ── Timeline ──────────────────────────────────────────────
@@ -693,7 +997,7 @@ const Tab6 = (() => {
           <table class="t6-table t6-hist-table">
             <thead><tr>
               <th>Entidad</th><th>Estado</th><th>TT</th><th>WO</th><th>Tipo de fallo</th>
-              <th>Región</th><th>Fecha y hora de cierre</th><th>Duración</th>
+              <th>Región</th><th>Tiempo de fin</th><th>Duración</th>
               <th>Team resolutor</th><th>Descripción</th><th>Usuario resolutor</th>
             </tr></thead>
             <tbody>${rows}</tbody>
@@ -728,6 +1032,7 @@ const Tab6 = (() => {
                 <div class="t6-reg-field"><span class="t6-reg-label">Nombre Completo</span><span class="t6-reg-val">${t.nombre||'—'}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">DNI</span><span class="t6-reg-val">${t.dni||'—'}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Celular</span><span class="t6-reg-val">${t.cel||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">Correo Electrónico</span><span class="t6-reg-val">${t.email||'—'}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Tiempo de Inicio</span><span class="t6-reg-val">${(t.fechaInc||'—')+' '+(t.horaInc||'')}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Región</span><span class="t6-reg-val">${t.region||'—'}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Provincia</span><span class="t6-reg-val">${t.provincia||'—'}</span></div>
@@ -749,6 +1054,8 @@ const Tab6 = (() => {
                 <div class="t6-reg-field"><span class="t6-reg-label">Cerrado por</span><span class="t6-reg-val">${cerradoPor}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Hora de Cierre</span><span class="t6-reg-val">${fc ? _fmtFull(fc) : '—'}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">Duración</span><span class="t6-reg-val">${dur}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">Hora de contacto a la entidad</span><span class="t6-reg-val">${ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—')}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">Día de visita técnica previsto</span><span class="t6-reg-val">${ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—')}</span></div>
             </div>
         </div>
 
@@ -797,9 +1104,9 @@ const Tab6 = (() => {
             try { await Store.updateTicket('entidades', _activeId, { resuelto: 'confirmado', finalizado: true, generadoCC: true }); }
             catch (e) { console.warn(e); }
         }
-        _setExt(_activeId, updates);
+        await _setExt(_activeId, updates);
 
-        _addActivity(_activeId, {
+        await _addActivity(_activeId, {
             tipo: newStatus === 'Cerrado' ? 'Cerrado' : 'Actualizado',
             autor: userName,
             fecha: new Date().toISOString(),
@@ -808,11 +1115,9 @@ const Tab6 = (() => {
         });
 
         closeUpdateModal();
-        _allTickets = await Store.getTickets('entidades');
         const t = _allTickets.find(tk => tk.id === _activeId);
         if (t) {
-            const ext2 = _getExt(_activeId);
-            _populateModal(t, ext2); // Refresh the whole detail view
+            _populateModal(t, _getExt(t.id));
         }
         await render();
         App.updateBadges();
@@ -848,6 +1153,8 @@ const Tab6 = (() => {
                     'Duración': _calcDuration(t.createdAt, ext.fechaCierre),
                     'Descripción Reportada': t.descripcion || '—',
                     'Detalles SOC': t.socDetalles || '—',
+                    'Hora Contacto Entidad': ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—'),
+                    'Día Visita Técnica Previsto': ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—'),
                 };
             });
             Exporter.downloadExcel('Tickets', rows, `IBBS_Tickets_${Date.now()}.xlsx`);
@@ -875,10 +1182,12 @@ const Tab6 = (() => {
     }
 
     return {
-        init, render, goToPage, openModal, closeModal, enableEdit, cancelEdit, saveDetails,
-        selectCausa, selectSOC, onCCInput, onTTInput, initDelete, cancelDelete, confirmDeleteTicket,
+        init, render, goToPage, openModal, closeModal, 
+        enableEditSOC, cancelEditSOC, saveDetailsSOC,
+        enableEditOM, cancelEditOM, saveDetailsOM,
+        selectCausa, selectSOC, onCCInput, onTTInput, onOMInput, initDelete, cancelDelete, confirmDeleteTicket,
         openUpdateModal, closeUpdateModal, submitUpdate,
-        exportExcel, markInteraction,
+        exportExcel, markInteractionSOC, markInteractionOM,
         openHistorialModal, closeHistorialModal
     };
 })();

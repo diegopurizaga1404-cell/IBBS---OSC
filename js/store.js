@@ -43,7 +43,15 @@ const Store = (() => {
             socDetalles: row.soc_detalles,
             region: row.region,
             provincia: row.provincia,
-            localidad: row.localidad,
+            localidad: (() => {
+                const dateToName = {
+                    '2025-10-09 00:00:00': '9 DE OCTUBRE',
+                    '2025-06-24 00:00:00': '24 DE JUNIO',
+                    '2025-05-03 00:00:00': '3 DE MAYO',
+                    '2025-05-02 00:00:00': '2 DE MAYO'
+                };
+                return (row.localidad && dateToName[row.localidad]) ? dateToName[row.localidad] : row.localidad;
+            })(),
             tipo: row.tipo,
             institucion: row.institucion,
             generadoCC: row.generado_cc,
@@ -61,6 +69,14 @@ const Store = (() => {
             cerradoPor: row.cerrado_por || null,
             fechaCierre: row.fecha_cierre || null,
             actividades: row.actividades || null,
+            omHoraContacto: row.om_hora_contacto || null,
+            omDiaVisita: row.om_dia_visita || null,
+            causaTs: row.causa_ts || null,
+            ccTs: row.cc_ts || null,
+            ttTs: row.tt_ts || null,
+            woTs: row.wo_ts || null,
+            omHoraTs: row.om_hora_ts || null,
+            omVisitaTs: row.om_visita_ts || null,
             createdAt: row.created_at,
             createdBy: row.created_by || null,
         };
@@ -214,8 +230,42 @@ const Store = (() => {
         if (error) console.error('Store.deleteEnlace error:', error);
     }
 
+    // ── Gestión de Usuarios ─────────────────────────────────────
+    async function getSolicitudes() {
+        const { data, error } = await supabaseDb
+            .from('solicitudes_registro')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) { console.error('Store.getSolicitudes error:', error); return []; }
+        return data || [];
+    }
+
+    async function addSolicitud(solicitud) {
+        const { error } = await supabaseDb
+            .from('solicitudes_registro')
+            .insert([solicitud]);
+        if (error) { console.error('Store.addSolicitud error:', error); throw error; }
+    }
+
+    async function updateSolicitud(id, updates) {
+        const { error } = await supabaseDb
+            .from('solicitudes_registro')
+            .update(updates)
+            .eq('id', id);
+        if (error) { console.error('Store.updateSolicitud error:', error); throw error; }
+    }
+
+    async function deleteSolicitud(id) {
+        const { error } = await supabaseDb
+            .from('solicitudes_registro')
+            .delete()
+            .eq('id', id);
+        if (error) console.error('Store.deleteSolicitud error:', error);
+    }
+
     return {
         getTickets, addTicket, updateTicket, deleteTicket,
         getEnlaces, addEnlace, deleteEnlace,
+        getSolicitudes, addSolicitud, updateSolicitud, deleteSolicitud,
     };
 })();

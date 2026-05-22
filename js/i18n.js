@@ -122,9 +122,11 @@ const I18n = (() => {
             "T6_PH_SEARCH": "Buscar entidad, CC, TT...",
             "T6_BTN_SEARCH": "🔍 Buscar",
             "T6_COL_START_TIME": "Tiempo de inicio",
-            "T6_COL_TEAM_REG": "Team que registró",
-            "T6_COL_TEAM_RES": "Team que resolvió",
-            "T6_COL_CLOSE_TIME": "Fecha y hora de cierre",
+            "T6_COL_LLAMADA_ENTIDAD": "Contacto",
+            "T6_COL_VISITA_PREVISTA": "Visita",
+            "T6_COL_TEAM_REG": "Registra",
+            "T6_COL_TEAM_RES": "Por resolver",
+            "T6_COL_CLOSE_TIME": "Tiempo de fin",
             "T6_COL_DURATION": "Duración incidencia",
             "ROLE_ADMIN": "Administrador",
             "USER_DEFAULT": "Usuario",
@@ -235,7 +237,52 @@ const I18n = (() => {
             
             // Additional Placeholders
             "PH_SELECT_TYPE": "-- Seleccione Tipo de Nodo --",
-            "PH_SELECT_CODE": "-- Seleccione Código --"
+            "PH_SELECT_CODE": "-- Seleccione Código --",
+
+            // Admin Panel
+            "NAV_ADMIN": "ADMINISTRACIÓN",
+            "NAV_ADMIN_REQUESTS": "Usuarios",
+            "ADMIN_TITLE": "Solicitudes de Acceso",
+            "ADMIN_SUBTITLE": "Gestiona las solicitudes de registro de nuevos usuarios al sistema.",
+            "ADMIN_PENDING": "Pendientes",
+            "ADMIN_APPROVE": "✅ Aprobar",
+            "ADMIN_REJECT": "❌ Rechazar",
+            "ADMIN_EMPTY": "Sin solicitudes pendientes",
+            "ADMIN_EMPTY_SUB": "Cuando alguien solicite acceso, aparecerá aquí.",
+            "ADMIN_STATUS_PENDING": "⏳ Pendiente",
+            "ADMIN_STATUS_APPROVED": "✅ Aprobada",
+            "ADMIN_STATUS_SUSPENDED": "🚫 Suspendida",
+            "ADMIN_STATUS_REJECTED": "❌ Rechazada",
+            "ADMIN_REQUESTED_AT": "Registrado el",
+            "ADMIN_ROLE_USER": "Usuario (Lectura)",
+            "ADMIN_ROLE_EDITOR": "Editor (Estándar)",
+            "ADMIN_ROLE_ADMIN": "Administrador",
+            "ADMIN_ACTIVE_ADMIN": "Admin Activo",
+            "ADMIN_YOU": "Tú",
+            "ADMIN_BTN_DISABLE": "🚫 Deshabilitar",
+            "ADMIN_BTN_ENABLE": "✅ Habilitar",
+            "ADMIN_BTN_DELETE": "🗑️ Eliminar",
+            "ADMIN_CONFIRM_DELETE": "¿Confirmar eliminación?",
+            "ADMIN_CONFIRM_REJECT": "¿Confirmar rechazo?",
+            "ADMIN_CONFIRM_YES_DELETE": "Sí, eliminar",
+            "ADMIN_CONFIRM_YES_REJECT": "Sí, rechazar",
+            "ADMIN_CONFIRM_CANCEL": "Cancelar",
+
+            // Login - Request Access
+            "LOGIN_REQUEST_ACCESS": "¿No tienes cuenta? Solicitar acceso",
+            "REQUEST_TITLE": "Solicitar Acceso",
+            "REQUEST_SUBTITLE": "El administrador revisará tu solicitud.",
+            "REQUEST_NAME": "Nombre y Apellido",
+            "REQUEST_EMAIL": "Correo Electrónico",
+            "REQUEST_PASSWORD": "Contraseña",
+            "REQUEST_BTN": "Enviar Solicitud",
+            "REQUEST_BACK": "← Volver al inicio de sesión",
+            "REQUEST_SUCCESS": "✅ Solicitud enviada. El administrador revisará tu acceso pronto.",
+            "REQUEST_ERROR_DUP": "Ya existe una solicitud con ese correo.",
+            "REQUEST_ERROR_GENERIC": "Error al enviar solicitud. Intenta de nuevo.",
+            "REQUEST_PH_NAME": "Nombres y apellidos",
+            "REQUEST_PH_EMAIL": "usuario@dominio.com",
+            "REQUEST_PH_PASSWORD": "••••••••"
         },
         en: {
             // General
@@ -397,9 +444,11 @@ const I18n = (() => {
             "T6_PH_SEARCH": "Search entity, CC, TT...",
             "T6_BTN_SEARCH": "🔍 Search",
             "T6_COL_START_TIME": "Start time",
-            "T6_COL_TEAM_REG": "Registering team",
-            "T6_COL_TEAM_RES": "Resolving team",
-            "T6_COL_CLOSE_TIME": "Closure date & time",
+            "T6_COL_LLAMADA_ENTIDAD": "Contact",
+            "T6_COL_VISITA_PREVISTA": "Visit",
+            "T6_COL_TEAM_REG": "Registers",
+            "T6_COL_TEAM_RES": "To resolve",
+            "T6_COL_CLOSE_TIME": "End time",
             "T6_COL_DURATION": "Incident duration",
             "ROLE_ADMIN": "Administrator",
             "USER_DEFAULT": "User",
@@ -468,7 +517,52 @@ const I18n = (() => {
             
             // Additional Placeholders
             "PH_SELECT_TYPE": "-- Select Node Type --",
-            "PH_SELECT_CODE": "-- Select Code --"
+            "PH_SELECT_CODE": "-- Select Code --",
+
+            // Admin Panel
+            "NAV_ADMIN": "ADMINISTRATION",
+            "NAV_ADMIN_REQUESTS": "Users",
+            "ADMIN_TITLE": "Access Requests",
+            "ADMIN_SUBTITLE": "Manage new user registration requests to the system.",
+            "ADMIN_PENDING": "Pending",
+            "ADMIN_APPROVE": "✅ Approve",
+            "ADMIN_REJECT": "❌ Reject",
+            "ADMIN_EMPTY": "No pending requests",
+            "ADMIN_EMPTY_SUB": "When someone requests access, it will appear here.",
+            "ADMIN_STATUS_PENDING": "⏳ Pending",
+            "ADMIN_STATUS_APPROVED": "✅ Approved",
+            "ADMIN_STATUS_SUSPENDED": "🚫 Suspended",
+            "ADMIN_STATUS_REJECTED": "❌ Rejected",
+            "ADMIN_REQUESTED_AT": "Registered on",
+            "ADMIN_ROLE_USER": "User (Read)",
+            "ADMIN_ROLE_EDITOR": "Editor (Standard)",
+            "ADMIN_ROLE_ADMIN": "Administrator",
+            "ADMIN_ACTIVE_ADMIN": "Active Admin",
+            "ADMIN_YOU": "You",
+            "ADMIN_BTN_DISABLE": "🚫 Disable",
+            "ADMIN_BTN_ENABLE": "✅ Enable",
+            "ADMIN_BTN_DELETE": "🗑️ Delete",
+            "ADMIN_CONFIRM_DELETE": "Confirm deletion?",
+            "ADMIN_CONFIRM_REJECT": "Confirm rejection?",
+            "ADMIN_CONFIRM_YES_DELETE": "Yes, delete",
+            "ADMIN_CONFIRM_YES_REJECT": "Yes, reject",
+            "ADMIN_CONFIRM_CANCEL": "Cancel",
+
+            // Login - Request Access
+            "LOGIN_REQUEST_ACCESS": "No account? Request access",
+            "REQUEST_TITLE": "Request Access",
+            "REQUEST_SUBTITLE": "The administrator will review your request.",
+            "REQUEST_NAME": "Full Name",
+            "REQUEST_EMAIL": "Email Address",
+            "REQUEST_PASSWORD": "Password",
+            "REQUEST_BTN": "Send Request",
+            "REQUEST_BACK": "← Back to login",
+            "REQUEST_SUCCESS": "✅ Request sent. The administrator will review your access soon.",
+            "REQUEST_ERROR_DUP": "A request with that email already exists.",
+            "REQUEST_ERROR_GENERIC": "Error sending request. Please try again.",
+            "REQUEST_PH_NAME": "First and last name",
+            "REQUEST_PH_EMAIL": "user@domain.com",
+            "REQUEST_PH_PASSWORD": "••••••••"
         }
     };
 
@@ -510,9 +604,14 @@ const I18n = (() => {
                 } else if (el.children.length === 0) {
                     el.textContent = _translations[_currentLang][key];
                 } else {
-                    const textNode = Array.from(el.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
-                    if (textNode) {
-                        textNode.textContent = ` ${_translations[_currentLang][key]}`;
+                    const navText = el.querySelector('.nav-text');
+                    if (navText) {
+                        navText.textContent = _translations[_currentLang][key];
+                    } else {
+                        const textNode = Array.from(el.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
+                        if (textNode) {
+                            textNode.textContent = ` ${_translations[_currentLang][key]}`;
+                        }
                     }
                 }
             }

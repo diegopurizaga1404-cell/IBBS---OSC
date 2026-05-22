@@ -4,7 +4,6 @@
  */
 
 const Tab3 = (() => {
-    let _draft = null;
 
     function init() {
         _buildCascade();
@@ -125,34 +124,17 @@ const Tab3 = (() => {
 
     // ── Buttons ──────────────────────────────────────────────────
     function _bindButtons() {
-        document.getElementById('btn-t3-generar').addEventListener('click', _onGenerar);
         document.getElementById('btn-t3-finalizar').addEventListener('click', _onFinalizar);
     }
 
-    function _onGenerar() {
+    async function _onFinalizar() {
+        // Validate node selectors
         const region = document.getElementById('t3-region').value;
         const tipoNodo = document.getElementById('t3-tipo-nodo').value;
         const codigo = document.getElementById('t3-codigo').value;
 
         if (!region || !tipoNodo || !codigo) {
             Toast.show(I18n.translate('MSG_SELECT_FIELDS'), 'error');
-            return;
-        }
-
-        _draft = {
-            region,
-            tipoNodo,
-            codigo,
-            nombreNodo: document.getElementById('t3-nombre-nodo').value,
-        };
-
-        document.getElementById('t3-draft-badge').classList.remove('hidden');
-        Toast.show(I18n.translate('MSG_NODE_SAVED'), 'success');
-    }
-
-    async function _onFinalizar() {
-        if (!_draft) {
-            Toast.show(I18n.translate('MSG_GENERATE_FIRST'), 'warning');
             return;
         }
 
@@ -168,7 +150,10 @@ const Tab3 = (() => {
         const ticket = {
             id: 'SOC-' + Date.now(),
             tipo_tab: 'soc',
-            ..._draft,
+            region,
+            tipoNodo,
+            codigo,
+            nombreNodo: document.getElementById('t3-nombre-nodo').value,
             fechaInc: document.getElementById('t3-fecha-inc').value,
             horaInc: document.getElementById('t3-hora-inc').value,
             fechaRep: document.getElementById('t3-fecha-rep').value,
@@ -186,8 +171,6 @@ const Tab3 = (() => {
             await Store.addTicket('soc', ticket);
             Toast.show(I18n.translate('MSG_SOC_SAVED'), 'success');
             _resetForm();
-            _draft = null;
-            document.getElementById('t3-draft-badge').classList.add('hidden');
             App.updateBadges();
         } catch (err) {
             const msg = err?.message || JSON.stringify(err);

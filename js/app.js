@@ -13,6 +13,7 @@ const App = (() => {
         'tab3': { key: 'NAV_CREATE_REG', section: 'NAV_SOC_NODES', onEnter: () => { } },
         'tab4': { key: 'NAV_REGISTRY', section: 'NAV_SOC_NODES', onEnter: () => Tab4.render() },
         'tab5': { key: 'NAV_LIBRARY', section: 'NAV_SOC_LINKS', onEnter: () => Tab5.render() },
+        'tab-admin': { key: 'NAV_ADMIN_REQUESTS', section: 'NAV_ADMIN', onEnter: () => TabAdmin.render() },
     };
 
     let _currentTab = 'tab1';
@@ -49,7 +50,9 @@ const App = (() => {
     }
 
     async function updateBadges() {
-        const entCount = (await Store.getTickets('entidades')).filter(t => !(t.generadoCC && t.resuelto === 'confirmado')).length;
+        const entidadesList = await Store.getTickets('entidades');
+        const entCount = entidadesList.filter(t => !(t.generadoCC && t.resuelto === 'confirmado')).length;
+        const entTotalCount = entidadesList.length;
         const socCount = (await Store.getTickets('soc')).filter(t => t.resuelto !== 'confirmado').length;
 
         const b2 = document.getElementById('badge-tab2');
@@ -57,7 +60,7 @@ const App = (() => {
         const b4 = document.getElementById('badge-tab4');
 
         if (b2) { b2.textContent = entCount || ''; b2.classList.toggle('hidden', entCount === 0); }
-        if (b6) { b6.textContent = entCount || ''; b6.classList.toggle('hidden', entCount === 0); }
+        if (b6) { b6.textContent = entTotalCount || ''; b6.classList.toggle('hidden', entTotalCount === 0); }
         if (b4) { b4.textContent = socCount || ''; b4.classList.toggle('hidden', socCount === 0); }
     }
 
@@ -88,6 +91,29 @@ const App = (() => {
             sidebar.classList.remove('open');
             overlay.classList.remove('open');
         });
+
+        // Desktop collapse toggle
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-collapsed');
+                const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+                localStorage.setItem('ibbs_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+                
+                // Immediate update
+                window.dispatchEvent(new Event('resize'));
+                
+                // Delayed update once transition finishes
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 250);
+            });
+        }
+
+        // Restore collapsed state on initial load
+        if (localStorage.getItem('ibbs_sidebar_collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
     }
 
     function initTheme() {
@@ -167,6 +193,17 @@ const App = (() => {
         try { Tab3.init(); } catch(e) { console.error('Error init Tab3:', e); }
         try { Tab4.init(); } catch(e) { console.error('Error init Tab4:', e); }
         try { Tab5.init(); } catch(e) { console.error('Error init Tab5:', e); }
+
+        // Admin-only setup
+        if (Auth.isAdmin()) {
+            // Register admin tab
+            TABS['tab-admin'] = { key: 'NAV_ADMIN_REQUESTS', section: 'NAV_ADMIN', onEnter: () => TabAdmin.render() };
+            // Show admin nav section
+            const adminNavSection = document.getElementById('nav-section-admin');
+            if (adminNavSection) adminNavSection.style.display = 'block';
+            // Init TabAdmin
+            try { TabAdmin.init(); } catch(e) { console.error('Error init TabAdmin:', e); }
+        }
 
         // Always start at Create Record (tab1) on initial load
         navigateTo('tab1');

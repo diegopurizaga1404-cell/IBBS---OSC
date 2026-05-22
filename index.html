@@ -70,16 +70,16 @@
           <div class="nav-items">
             <div class="nav-item active" data-tab="tab1" data-i18n="NAV_CREATE_REG">
               <span class="nav-icon">📝</span>
-              Creación de Registro
+              <span class="nav-text">Creación de Registro</span>
             </div>
             <div class="nav-item" data-tab="tab6" data-i18n="NAV_TICKETS">
               <span class="nav-icon">🗂</span>
-              Registros
+              <span class="nav-text">Registros</span>
               <span class="nav-badge hidden" id="badge-tab6">0</span>
             </div>
             <div class="nav-item" data-tab="tab-dashboard" data-i18n="NAV_DASHBOARD">
               <span class="nav-icon">📊</span>
-              Dashboard
+              <span class="nav-text">Dashboard</span>
             </div>
           </div>
         </div>
@@ -94,7 +94,22 @@
           <div class="nav-items">
             <div class="nav-item" data-tab="tab5" data-i18n="NAV_LIBRARY">
               <span class="nav-icon">🔗</span>
-              Biblioteca
+              <span class="nav-text">Biblioteca</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMINISTRACIÓN -->
+        <div class="nav-section" id="nav-section-admin" style="display: none;">
+          <div class="nav-section-header">
+            <span class="nav-section-title" data-i18n="NAV_ADMIN">Administración</span>
+            <span class="nav-section-arrow">▾</span>
+          </div>
+          <div class="nav-items">
+            <div class="nav-item" data-tab="tab-admin" id="nav-admin" data-i18n="NAV_ADMIN_REQUESTS">
+              <span class="nav-icon">👥</span>
+              <span class="nav-text">Usuarios</span>
+              <span class="nav-badge hidden" id="badge-tab-admin">0</span>
             </div>
           </div>
         </div>
@@ -106,8 +121,8 @@
         
         <!-- Perfil de Usuario -->
         <div id="user-profile-box" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-          <div style="width: 32px; height: 32px; background: var(--brand-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">👤</div>
-          <div style="overflow: hidden;">
+          <div style="width: 32px; height: 32px; flex-shrink:0; background: var(--brand-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">👤</div>
+          <div class="user-profile-details" style="overflow: hidden;">
             <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="USER_OPERATOR">Operador</div>
             <div id="user-display-name" style="font-size: 0.85rem; color: white; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cargando...</div>
           </div>
@@ -115,12 +130,12 @@
 
         <button id="theme-toggle" class="btn"
           style="width: 100%; background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-          <span style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_THEME">Alternar Tema</span>
+          <span class="btn-text" style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_THEME">Alternar Tema</span>
           <span class="nav-icon" id="theme-icon">🌙</span>
         </button>
         <button id="logout-btn" class="btn"
           style="width: 100%; background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-          <span style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_LOGOUT">Cerrar Sesión</span>
+          <span class="btn-text" style="font-size: .85rem; font-weight: 600;" data-i18n="NAV_LOGOUT">Cerrar Sesión</span>
           <span class="nav-icon">🚪</span>
         </button>
       </div>
@@ -132,7 +147,10 @@
 
       <!-- Topbar -->
       <header class="topbar">
-        <div style="flex:1">
+        <div style="flex:1; display:flex; align-items:center; gap:16px;">
+          <button id="sidebar-collapse-btn" aria-label="Alternar panel" title="Alternar panel" style="background:transparent; border:none; font-size:1.4rem; color:var(--gray-600); cursor:pointer; padding:4px 8px; border-radius:4px; display:flex; align-items:center; justify-content:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='transparent'">
+            ☰
+          </button>
           <div class="topbar-title" id="topbar-title">Creación de Registro</div>
         </div>
         
@@ -322,18 +340,22 @@
                   placeholder="Información adicional sobre el incidente…"></textarea>
               </div>
 
-              <button class="btn-generate" id="btn-t1-generar" data-i18n="T1_BTN_GENERATE">
-                ⚡ Generar mi registro
-              </button>
             </div>
 
             <!-- Right: Datos de ubicación -->
             <div class="card">
-              <div class="card-header">
-                <div class="card-icon">📍</div>
-                <div>
-                  <div class="card-title" data-i18n="T1_CARD_LOCATION">Ubicación y Entidad</div>
-                  <div class="card-subtitle" data-i18n="T1_CARD_CASCADE">Selectores dependientes en cascada</div>
+              <div class="card-header" style="justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <div class="card-icon">📍</div>
+                  <div>
+                    <div class="card-title" data-i18n="T1_CARD_LOCATION">Ubicación y Entidad</div>
+                    <div class="card-subtitle" data-i18n="T1_CARD_CASCADE">Selectores dependientes en cascada</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; position: relative;">
+                  <input type="text" id="t1-search-entity" class="form-input" placeholder="Buscar por código..." style="width: 220px; padding: 6px 10px; font-size: 0.85rem; height: 32px; min-height: 32px;" autocomplete="off">
+                  <button id="t1-btn-search" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.9rem; height: 32px;" title="Buscar Entidad">🔍</button>
+                  <div id="t1-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 40px; background: white; border: 1px solid var(--gray-200); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; z-index: 1000; margin-top: 4px;"></div>
                 </div>
               </div>
 
@@ -575,6 +597,7 @@
                   <div class="t6-reg-field"><span class="t6-reg-label">Nombre Completo</span><span class="t6-reg-val" id="t6-reg-nombre">—</span></div>
                   <div class="t6-reg-field"><span class="t6-reg-label">DNI</span><span class="t6-reg-val" id="t6-reg-dni">—</span></div>
                   <div class="t6-reg-field"><span class="t6-reg-label">Celular</span><span class="t6-reg-val" id="t6-reg-cel">—</span></div>
+                  <div class="t6-reg-field" style="grid-column: span 3;"><span class="t6-reg-label">Correo Electrónico</span><span class="t6-reg-val" id="t6-reg-email" style="white-space: nowrap;">—</span></div>
                   <div class="t6-reg-field"><span class="t6-reg-label">Tiempo de Inicio</span><span class="t6-reg-val" id="t6-reg-fecha">—</span></div>
                   <div class="t6-reg-field"><span class="t6-reg-label">Región</span><span class="t6-reg-val" id="t6-reg-region">—</span></div>
                   <div class="t6-reg-field"><span class="t6-reg-label">Provincia</span><span class="t6-reg-val" id="t6-reg-provincia">—</span></div>
@@ -640,7 +663,7 @@
                     <h4 class="t6-modern-title"><span class="t6-modern-icon">2</span> Notas Técnicas</h4>
                     <div class="form-group" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;">
                         <label class="form-label">Observaciones del operador</label>
-                        <textarea class="form-textarea t6-modern-textarea" id="t6-desc-field" placeholder="Escribe observaciones técnicas, diagnóstico, pasos realizados..." disabled oninput="Tab6.markInteraction()"></textarea>
+                        <textarea class="form-textarea t6-modern-textarea" id="t6-desc-field" placeholder="Escribe observaciones técnicas, diagnóstico, pasos realizados..." disabled oninput="Tab6.markInteractionSOC()"></textarea>
                     </div>
                   </div>
 
@@ -658,17 +681,46 @@
                       </div>
                       <div class="form-group t6-field-small">
                         <label class="form-label">WO</label>
-                        <input type="text" class="form-input t6-modern-input" id="t6-wo-field" placeholder="Nº WO" disabled oninput="Tab6.markInteraction()">
+                        <input type="text" class="form-input t6-modern-input" id="t6-wo-field" placeholder="Nº WO" disabled oninput="Tab6.markInteractionSOC()">
                       </div>
                     </div>
                   </div>
 
-                  <!-- Acciones -->
+                  <!-- Acciones SOC -->
                   <div class="t6-modern-actions">
-                    <button class="t6-btn-modern t6-btn-cancelar" id="t6-btn-cancelar" onclick="Tab6.cancelEdit()" style="display:none">✕ Cancelar</button>
-                    <button class="t6-btn-modern t6-btn-guardar" id="t6-btn-guardar" onclick="Tab6.saveDetails()" style="display:none">💾 Guardar Cambios</button>
-                    <button class="t6-btn-modern t6-btn-editar" id="t6-btn-editar" onclick="Tab6.enableEdit()">✏️ Habilitar Edición</button>
+                    <button class="t6-btn-modern t6-btn-cancelar" id="t6-btn-cancelar-soc" onclick="Tab6.cancelEditSOC()" style="display:none">✕ Cancelar</button>
+                    <button class="t6-btn-modern t6-btn-guardar" id="t6-btn-guardar-soc" onclick="Tab6.saveDetailsSOC()" style="display:none">💾 Guardar Cambios</button>
+                    <button class="t6-btn-modern t6-btn-editar" id="t6-btn-editar-soc" onclick="Tab6.enableEditSOC()">✏️ Editar SOC</button>
                   </div>
+
+                </div>
+              </div>
+
+              <!-- Bloque Inferior: Datos O&M Independientes -->
+              <div class="t6-modern-card" id="t6-om-card" style="margin-top: 16px; padding: 16px 24px;">
+                <h4 class="t6-modern-title">Datos O&M</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 16px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label t6-modern-label">HORA DE CONTACTO A LA ENTIDAD</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="date" class="form-input t6-modern-input" id="t6-om-hora-contacto-fecha" style="flex: 1;" onchange="Tab6.markInteractionOM()" disabled>
+                      <input type="time" class="form-input t6-modern-input" id="t6-om-hora-contacto-hora" style="flex: 1;" onchange="Tab6.markInteractionOM()" disabled>
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label t6-modern-label">DÍA DE VISITA TÉCNICA PREVISTO</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="date" class="form-input t6-modern-input" id="t6-om-dia-visita-fecha" style="flex: 1;" onchange="Tab6.markInteractionOM()" disabled>
+                      <input type="time" class="form-input t6-modern-input" id="t6-om-dia-visita-hora" style="flex: 1;" onchange="Tab6.markInteractionOM()" disabled>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="t6-modern-actions" style="margin-top: 16px; justify-content: flex-end;">
+                  <button class="t6-btn-modern t6-btn-cancelar" id="t6-btn-cancelar-om" onclick="Tab6.cancelEditOM()" style="display:none">✕ Cancelar</button>
+                  <button class="t6-btn-modern t6-btn-guardar" id="t6-btn-guardar-om" onclick="Tab6.saveDetailsOM()" style="display:none">💾 Guardar Cambios</button>
+                  <button class="t6-btn-modern t6-btn-editar" id="t6-btn-editar-om" onclick="Tab6.enableEditOM()">✏️ Editar O&M</button>
                 </div>
               </div>
 
@@ -925,6 +977,28 @@
           </div>
 
         </div><!-- /tab5 -->
+
+        <!-- TAB ADMIN: Solicitudes de Registro -->
+        <div class="tab-pane" id="tab-admin">
+          <div class="page-header" style="justify-content: flex-start; align-items: baseline; gap: 16px; padding: 24px 32px 0 32px;">
+            <h2 data-i18n="ADMIN_TITLE" style="font-size: 1.75rem; font-weight: 700; color: var(--gray-800);">Solicitudes de Acceso</h2>
+            <span style="font-size: 1rem; color: var(--gray-500); font-weight: 500;">
+              (<span id="admin-pending-count">0</span> pendientes)
+            </span>
+          </div>
+          
+          <div style="padding: 0 32px 32px 32px;">
+            <!-- Lista de solicitudes -->
+            <div id="admin-requests-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;"></div>
+            
+            <!-- Estado vacío -->
+            <div id="admin-requests-empty" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-top: 24px;">
+              <div style="font-size: 3rem; margin-bottom: 16px; opacity: 0.8;">🍃</div>
+              <h3 style="color: var(--gray-700); font-size: 1.25rem; font-weight: 600; margin-bottom: 8px;">Directorio vacío</h3>
+              <p style="color: var(--gray-500); max-width: 400px; line-height: 1.5;">No hay usuarios registrados ni solicitudes pendientes en este momento.</p>
+            </div>
+          </div>
+        </div><!-- /tab-admin -->
 
       </main><!-- /page-body -->
     </div><!-- /main-content -->
@@ -1194,6 +1268,7 @@
   <script src="js/tab4.js"></script>
   <script src="js/tab5.js"></script>
   <script src="js/tab6.js"></script>
+  <script src="js/tabAdmin.js"></script>
   <script src="js/tabDashboard.js"></script>
   <script src="js/app.js"></script>
 

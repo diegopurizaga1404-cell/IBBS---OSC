@@ -4,7 +4,6 @@
  */
 
 const Tab1 = (() => {
-    let _draft = null; // Stores data after "Generar mi registro"
 
     function init() {
         _buildCascade();
@@ -89,7 +88,19 @@ const Tab1 = (() => {
         sel.innerHTML = `<option value="">${translatedPlaceholder}</option>`;
         options.forEach(o => {
             const opt = document.createElement('option');
-            opt.value = opt.textContent = o;
+            opt.value = o;
+            
+            if (sel.id === 't1-institucion') {
+                const info = DataManager.getColegioInfo(o);
+                if (info) {
+                    opt.textContent = `${o} - ${info.name} (${info.category})`;
+                } else {
+                    opt.textContent = o;
+                }
+            } else {
+                opt.textContent = o;
+            }
+            
             sel.appendChild(opt);
         });
         sel.disabled = options.length === 0;
@@ -110,13 +121,113 @@ const Tab1 = (() => {
         }
     }
 
-    // ── Buttons ──────────────────────────────────────────────────
+    // ── Buttons ────────────────────────────────────────────
     function _bindButtons() {
-        document.getElementById('btn-t1-generar').addEventListener('click', _onGenerar);
         document.getElementById('btn-t1-finalizar').addEventListener('click', _onFinalizar);
+        
+        const searchInput = document.getElementById('t1-search-entity');
+        const searchBtn = document.getElementById('t1-btn-search');
+        if (searchInput && searchBtn) {
+            searchBtn.addEventListener('click', _onSearchEntity);
+            searchInput.addEventListener('input', _handleSearchInput);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    _onSearchEntity();
+                }
+            });
+            // Hide on outside click
+            document.addEventListener('click', (e) => {
+                const results = document.getElementById('t1-search-results');
+                if (results && !searchInput.contains(e.target) && !results.contains(e.target) && e.target !== searchBtn) {
+                    results.style.display = 'none';
+                }
+            });
+        }
     }
 
-    function _onGenerar() {
+    function _handleSearchInput(e) {
+        const query = e.target.value.trim();
+        const resultsContainer = document.getElementById('t1-search-results');
+        if (query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const matches = DataManager.findByInstitucion(query);
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = '<div style="padding: 10px; font-size: 0.85rem; color: var(--gray-500); text-align: center;">No se encontraron entidades.</div>';
+            resultsContainer.style.display = 'block';
+            return;
+        }
+
+        resultsContainer.innerHTML = '';
+        matches.forEach(entity => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 8px 12px; font-size: 0.8rem; border-bottom: 1px solid var(--gray-100); cursor: pointer; display: flex; flex-direction: column; gap: 2px; transition: background 0.2s;';
+            div.onmouseover = () => div.style.background = 'var(--gray-50)';
+            div.onmouseout = () => div.style.background = 'transparent';
+            
+            // Name format
+            const info = DataManager.getColegioInfo(entity.Institucion);
+            const extra = info ? ` - ${info.name}` : '';
+            
+            div.innerHTML = `
+                <div style="font-weight: 700; color: var(--brand-blue);">${entity.Institucion}${extra}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-500);">${entity.Region} > ${entity.Provincia} > ${entity.Localidad}</div>
+            `;
+            
+            div.addEventListener('click', () => {
+                document.getElementById('t1-search-entity').value = entity.Institucion;
+                resultsContainer.style.display = 'none';
+                _fillEntity(entity);
+            });
+            
+            resultsContainer.appendChild(div);
+        });
+        resultsContainer.style.display = 'block';
+    }
+
+    function _fillEntity(entity) {
+        const selRegion = document.getElementById('t1-region');
+        const selProv = document.getElementById('t1-provincia');
+        const selLoc = document.getElementById('t1-localidad');
+        const selTipo = document.getElementById('t1-tipo');
+        const selInst = document.getElementById('t1-institucion');
+
+        selRegion.value = entity.Region;
+        _populateSelect(selProv, DataManager.getProvincias(entity.Region), 'PH_SELECT_PROVINCE');
+        selProv.value = entity.Provincia;
+        
+        _populateSelect(selLoc, DataManager.getLocalidadesByRegion(entity.Region), 'PH_SELECT_LOCALITY');
+        selLoc.value = entity.Localidad;
+        
+        _populateSelect(selTipo, DataManager.getTipos(entity.Region, entity.Provincia, entity.Localidad), 'PH_SELECT_TYPE');
+        selTipo.value = entity.Tipo;
+        
+        _populateSelect(selInst, DataManager.getInstituciones(entity.Region, entity.Provincia, entity.Localidad, entity.Tipo), 'PH_SELECT_ENTITY');
+        selInst.value = entity.Institucion;
+
+        _updateSteps(5);
+        Toast.show('Entidad autocompletada correctamente.', 'success');
+    }
+
+    function _onSearchEntity() {
+        const query = document.getElementById('t1-search-entity').value;
+        if (!query) return;
+
+        const entity = DataManager.getEntityByCode(query);
+        if (!entity) {
+            Toast.show('Entidad no encontrada.', 'error');
+            return;
+        }
+        
+        document.getElementById('t1-search-results').style.display = 'none';
+        _fillEntity(entity);
+    }
+
+    async function _onFinalizar() {
+        // Validate left-panel fields
         const nombre = document.getElementById('t1-nombre').value.trim();
         const dni = document.getElementById('t1-dni').value.trim();
         const cel = document.getElementById('t1-celular').value.trim();
@@ -128,24 +239,7 @@ const Tab1 = (() => {
             return;
         }
 
-        _draft = {
-            nombre, dni, cel,
-            email: document.getElementById('t1-email').value.trim(),
-            fechaInc,
-            horaInc,
-            descripcion: document.getElementById('t1-desc').value.trim(),
-        };
-
-        document.getElementById('t1-draft-badge').classList.remove('hidden');
-        Toast.show('Datos del solicitante guardados. Completa la ubicación y finaliza.', 'success');
-    }
-
-    async function _onFinalizar() {
-        if (!_draft) {
-            Toast.show('Primero genera tu registro con los datos del solicitante.', 'warning');
-            return;
-        }
-
+        // Validate right-panel selectors
         const region = document.getElementById('t1-region').value;
         const provincia = document.getElementById('t1-provincia').value;
         const localidad = document.getElementById('t1-localidad').value;
@@ -164,7 +258,11 @@ const Tab1 = (() => {
         const ticket = {
             id: 'ENT-' + Date.now(),
             tipo_tab: 'entidad',
-            ..._draft,
+            nombre, dni, cel,
+            email: document.getElementById('t1-email').value.trim(),
+            fechaInc,
+            horaInc,
+            descripcion: document.getElementById('t1-desc').value.trim(),
             region, provincia, localidad, tipo, institucion,
             createdAt: now.toISOString(),
             createdBy,
@@ -175,13 +273,7 @@ const Tab1 = (() => {
         try {
             await Store.addTicket('entidades', ticket);
             Toast.show('Registro finalizado con éxito ✔', 'success');
-
-            // Reset
             _resetForm();
-            _draft = null;
-            document.getElementById('t1-draft-badge').classList.add('hidden');
-
-            // Update badge indicator
             App.updateBadges();
         } catch (err) {
             const msg = err?.message || JSON.stringify(err);

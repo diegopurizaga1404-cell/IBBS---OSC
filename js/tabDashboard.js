@@ -15,6 +15,11 @@ const TabDashboard = (() => {
                 render();
             }
         });
+        window.addEventListener('themeChanged', () => {
+            if (document.getElementById('tab-dashboard').classList.contains('active')) {
+                _applyFilters();
+            }
+        });
     }
 
     async function render() {
@@ -122,19 +127,13 @@ const TabDashboard = (() => {
         window.requestAnimationFrame(step);
     }
 
-    function _getExt(id) {
-        const raw = localStorage.getItem('ibbs_ext_' + id);
-        return raw ? JSON.parse(raw) : {};
-    }
-
     function _renderTopKPIs(tickets) {
         const container = document.getElementById('db-kpi-container');
         if (!container) return;
 
         let abierto = 0, enCurso = 0, cerrado = 0;
         tickets.forEach(t => {
-            const ext = _getExt(t.id);
-            const st = ext.estado || t.estado || 'Abierto';
+            const st = t.estado || 'Abierto';
             if (st === 'Abierto') abierto++;
             else if (st === 'En curso') enCurso++;
             else if (st === 'Cerrado') cerrado++;
@@ -262,8 +261,7 @@ const TabDashboard = (() => {
 
         tbody.innerHTML = latest.map(t => {
             const date = t.fechaInc ? t.fechaInc.split('-').reverse().join('/') : '—';
-            const ext = _getExt(t.id);
-            const st = ext.estado || t.estado || 'Abierto';
+            const st = t.estado || 'Abierto';
             
             let dotClass = 'offline';
             let statusText = 'Abierto';
@@ -302,14 +300,16 @@ const TabDashboard = (() => {
     }
 
     function _getChartOptions(isDonut) {
-        const textColor = document.body.classList.contains('dark-mode') ? '#94a3b8' : '#334155';
+        const isDark = document.body.classList.contains('dark-mode');
+        const textColor = isDark ? '#cbd5e1' : '#475569';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
         return {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: isDonut,
-                    position: 'right',
+                    position: 'bottom',
                     labels: { 
                         color: textColor, 
                         font: { family: 'Montserrat', size: 10, weight: '600' }, 
@@ -320,7 +320,7 @@ const TabDashboard = (() => {
             },
             scales: isDonut ? {} : {
                 y: { 
-                    grid: { color: 'rgba(0,0,0,0.05)' }, 
+                    grid: { color: gridColor }, 
                     ticks: { color: textColor, font: { family: 'Montserrat', size: 10, weight: '600' } } 
                 },
                 x: { 

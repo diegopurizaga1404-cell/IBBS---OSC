@@ -6,18 +6,35 @@
 const DataManager = (() => {
   let _entidades = null;
   let _nodos = null; // Combined AX + TX
+  let _colegios = null;
 
   // ── Load all data files ──────────────────────────────────────
   async function loadAll() {
-    const [ent, ax, tx] = await Promise.all([
+    const [ent, ax, tx, col] = await Promise.all([
       fetch('data/ENTIDADES.json').then(r => r.json()),
       fetch('data/ax.json').then(r => r.json()),
       fetch('data/tx.json').then(r => r.json()),
+      fetch('data/COLEGIOS.json').then(r => r.json()).catch(() => ({})),
     ]);
+    
+    // Clean up Excel-converted date strings in Localidad field
+    const dateToName = {
+      '2025-10-09 00:00:00': '9 DE OCTUBRE',
+      '2025-06-24 00:00:00': '24 DE JUNIO',
+      '2025-05-03 00:00:00': '3 DE MAYO',
+      '2025-05-02 00:00:00': '2 DE MAYO'
+    };
+    ent.forEach(r => {
+      if (r.Localidad && dateToName[r.Localidad]) {
+        r.Localidad = dateToName[r.Localidad];
+      }
+    });
+
     _entidades = ent;
+    _colegios = col;
     // Normalize Region to uppercase so "La Libertad" and "LA LIBERTAD" merge correctly
     _nodos = [...ax, ...tx].map(n => ({ ...n, Region: n.Region.toUpperCase().trim() }));
-    return { entidades: _entidades, nodos: _nodos };
+    return { entidades: _entidades, nodos: _nodos, colegios: _colegios };
   }
 
   // ── ENTIDADES cascade helpers ────────────────────────────────
@@ -39,6 +56,12 @@ const DataManager = (() => {
   function getLocalidadesByRegion(region) {
     if (!_entidades || !region) return [];
     return [...new Set(_entidades.filter(r => r.Region === region).map(r => r.Localidad))].sort();
+  }
+
+  function getEntityByCode(code) {
+    if (!_entidades || !code) return null;
+    const cleanCode = code.trim().toUpperCase();
+    return _entidades.find(r => r.Institucion.toUpperCase() === cleanCode || r.Institucion.toUpperCase().includes(cleanCode));
   }
 
   function getProvinciaByLocalidad(region, localidad) {
@@ -96,10 +119,24 @@ const DataManager = (() => {
     return getNodoRegiones();
   }
 
+  function getColegioInfo(id) {
+    if (!_colegios || !id) return null;
+    return _colegios[id.trim()] || null;
+  }
+
+  function findByInstitucion(query) {
+    if (!_entidades || !query || query.length < 2) return [];
+    const q = query.trim().toLowerCase();
+    return _entidades
+      .filter(r => r.Institucion && r.Institucion.toLowerCase().includes(q))
+      .slice(0, 10);
+  }
+
   return {
     loadAll,
     // Entidades
-    getRegiones, getProvincias, getLocalidades, getLocalidadesByRegion, getProvinciaByLocalidad, getProvinciasByLocalidad, getTipos, getInstituciones,
+    getRegiones, getProvincias, getLocalidades, getLocalidadesByRegion, getProvinciaByLocalidad, getProvinciasByLocalidad, getTipos, getInstituciones, getColegioInfo,
+    findByInstitucion, getEntityByCode,
     // Nodos
     getNodoRegiones: getAllNodoRegiones, getTiposNodo, getCodigos, getNombreNodo,
   };

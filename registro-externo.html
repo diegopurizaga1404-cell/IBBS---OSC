@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IBBS – Creación de Registro Externo</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232563eb'/><text y='23' x='5' font-size='20'>📡</text></svg>" />
+  <style>
+    /* Estilos específicos para la vista incrustada */
+    body {
+      background: var(--gray-50);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    .external-container {
+      width: 100%;
+      max-width: 1200px;
+    }
+    .page-header {
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="external-container">
+    <div class="page-header">
+      <div>
+        <h2 data-i18n="T1_TITLE">Creación de Registro</h2>
+        <p data-i18n="T1_SUBTITLE">Completa los datos del solicitante y la ubicación de la entidad afectada.</p>
+      </div>
+      <!-- Language Switcher -->
+      <div style="display: flex; gap: 4px;">
+         <button onclick="I18n.toggleLanguage()" class="btn" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 700; border: 1px solid var(--gray-200); background: var(--white); color: var(--gray-600); border-radius: 6px;">
+           🌐 <span id="lang-indicator">ES</span>
+         </button>
+      </div>
+    </div>
+
+    <div id="t1-draft-badge" class="draft-badge hidden">
+      <span class="dot"></span>
+      Datos del solicitante guardados — completa la ubicación para finalizar
+    </div>
+
+    <div class="two-panel">
+      <!-- Left: Datos del solicitante -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">👤</div>
+          <div>
+            <div class="card-title" data-i18n="T1_CARD_SOLICITANT">Datos del Solicitante</div>
+            <div class="card-subtitle" data-i18n="T1_CARD_CONTACT">Información de contacto</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-nombre"><span data-i18n="T1_LABEL_NAME">Nombre y Apellido</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <input class="form-input" id="t1-nombre" type="text" placeholder="Ej. Juan Pérez García" data-i18n-placeholder="PH_NAME" autocomplete="name" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-dni"><span data-i18n="T1_LABEL_DNI">Número de DNI</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <input class="form-input" id="t1-dni" type="number" placeholder="12345678" data-i18n-placeholder="PH_DNI" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-celular"><span data-i18n="T1_LABEL_PHONE">Número de Celular</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <input class="form-input" id="t1-celular" type="number" placeholder="9XXXXXXXX" data-i18n-placeholder="PH_PHONE" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-email"><span data-i18n="T1_LABEL_EMAIL">Correo Electrónico</span> <span class="optional" data-i18n="OPTIONAL">(opcional)</span></label>
+          <input class="form-input" id="t1-email" type="email" placeholder="correo@dominio.com" data-i18n-placeholder="PH_EMAIL" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="T1_LABEL_DATE">Fecha y Hora del Incidente</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <div class="datetime-row">
+            <input class="form-input" id="t1-fecha" type="date" />
+            <input class="form-input" id="t1-hora" type="time" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-desc"><span data-i18n="T1_LABEL_DESC">Descripción</span> <span class="optional" data-i18n="OPTIONAL">(opcional)</span></label>
+          <textarea class="form-textarea" id="t1-desc" data-i18n-placeholder="PH_DESC" placeholder="Información adicional sobre el incidente…"></textarea>
+        </div>
+
+        <button class="btn-generate" id="btn-t1-generar" data-i18n="T1_BTN_GENERATE">
+          ⚡ Generar mi registro
+        </button>
+      </div>
+
+      <!-- Right: Datos de ubicación -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📍</div>
+          <div>
+            <div class="card-title" data-i18n="T1_CARD_LOCATION">Ubicación y Entidad</div>
+            <div class="card-subtitle" data-i18n="T1_CARD_CASCADE">Selectores dependientes en cascada</div>
+          </div>
+        </div>
+
+        <!-- Progress steps -->
+        <div class="cascade-steps">
+          <div class="cascade-step" id="t1-step-1" title="Región"></div>
+          <div class="cascade-step" id="t1-step-2" title="Provincia"></div>
+          <div class="cascade-step" id="t1-step-3" title="Localidad"></div>
+          <div class="cascade-step" id="t1-step-4" title="Tipo"></div>
+          <div class="cascade-step" id="t1-step-5" title="Entidad"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">1. <span data-i18n="T1_LABEL_REGION">REGIÓN</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <select class="form-select" id="t1-region">
+            <option value="" data-i18n="PH_SELECT_REGION">-- Seleccione Región --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-provincia">2. <span data-i18n="T1_LABEL_PROVINCE">PROVINCIA</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <select class="form-select" id="t1-provincia" disabled>
+            <option value="">--</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-localidad">3. <span data-i18n="T1_LABEL_LOCALITY">LOCALIDAD</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <select class="form-select" id="t1-localidad" disabled>
+            <option value="">--</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-tipo">4. <span data-i18n="T1_LABEL_TYPE">TIPO</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <select class="form-select" id="t1-tipo" disabled>
+            <option value="">--</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="t1-institucion">5. <span data-i18n="T1_LABEL_ENTITY">ENTIDAD</span> <span class="required" data-i18n="REQUIRED">*</span></label>
+          <select class="form-select" id="t1-institucion" disabled>
+            <option value="">--</option>
+          </select>
+        </div>
+
+        <div class="btn-divider" data-i18n="T1_DIVIDER_FINAL">Paso final</div>
+
+        <button class="btn-finalize" id="btn-t1-finalizar" data-i18n="T1_BTN_FINISH">
+          ✓ Finalizar mi registro
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor para los mensajes tipo Toast -->
+  <div id="toast-container"></div>
+
+  <!-- SCRIPTS -->
+  <!-- Supabase JS v2 -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  
+  <script src="js/supabase.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/registro-externo.js"></script>
+</body>
+</html>
