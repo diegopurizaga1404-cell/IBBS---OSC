@@ -3303,7 +3303,7 @@ body.dark-mode .t6-msg-option:has(input:checked) { background: var(--blue-600); 
   display: flex;
   align-items: flex-start;
   position: relative;
-  padding: 16px 0 8px;
+  padding: 24px 0 8px;
   overflow-x: auto;
 }
 
@@ -3311,7 +3311,7 @@ body.dark-mode .t6-msg-option:has(input:checked) { background: var(--blue-600); 
 .tl2-timeline::before {
   content: '';
   position: absolute;
-  top: 26px; /* vertically centered on the 20px dot (16px padding + 20/2 = 26px) */
+  top: 34px; /* vertically centered on the 20px dot (24px padding + 20/2 = 34px) */
   left: 19px;
   right: 19px;
   height: 2px;
@@ -3337,6 +3337,7 @@ body.dark-mode .t6-msg-option:has(input:checked) { background: var(--blue-600); 
   justify-content: center;
   width: 100%;
   margin-bottom: 8px;
+  position: relative;
 }
 
 /* Dot (Sphere) */
@@ -3405,6 +3406,37 @@ body.dark-mode .tl2-time          { color: var(--gray-500); }
 body.dark-mode .tl2-label         { color: var(--gray-400); }
 body.dark-mode .tl2-step--done .tl2-label { color: var(--blue-300); }
 body.dark-mode .tl2-step--done .tl2-time  { color: var(--gray-400); }
+
+.panel-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(100%);
+  transition: all 0.3s ease;
+}
+
+.tl2-duration {
+  position: absolute;
+  right: -50%;
+  top: -20px;
+  width: 100%;
+  text-align: center;
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  z-index: 2;
+  pointer-events: none;
+}
+body.dark-mode .tl2-duration { color: var(--blue-400); }
+
+.tl2-user {
+  font-size: .6rem;
+  color: var(--gray-400);
+  margin-top: 2px;
+  font-weight: 500;
+  text-transform: none;
+}
+body.dark-mode .tl2-user { color: var(--gray-500); }
+
 
 /* ═══════════════════════════════════════════
    T6-HM – HISTORIAL OVERLAY MODAL

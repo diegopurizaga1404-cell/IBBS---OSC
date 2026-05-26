@@ -133,7 +133,8 @@ const Tab6 = (() => {
 
     // ── Render table ─────────────────────────────────────────
     async function render() {
-        _allTickets = await Store.getTickets('entidades');
+        const rawTickets = await Store.getTickets('entidades');
+        _allTickets = rawTickets.filter(t => typeof Permissions !== 'undefined' ? Permissions.canViewRegion(t.region) : true);
         
         // Update KPI Summary Cards
         let abierto = 0, enCurso = 0, cerrado = 0;
@@ -324,7 +325,14 @@ const Tab6 = (() => {
         const s = new Date(createdAt), e = fechaCierre ? new Date(fechaCierre) : new Date();
         const ms = e - s;
         if (isNaN(ms) || ms < 0) return '—';
-        return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        if (h >= 24) {
+            const d = Math.floor(h / 24);
+            const rem_h = h % 24;
+            return `${d}d ${rem_h}h`;
+        }
+        return `${h}h ${m}m`;
     }
 
     function _calcTeam(t, ext) {
@@ -362,13 +370,17 @@ const Tab6 = (() => {
         const sel = document.getElementById('t6-filter-region');
         const cur = sel.value;
         const regions = [...new Set(tickets.map(t => t.region).filter(Boolean))].sort();
-        sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
-        regions.forEach(r => {
-            const o = document.createElement('option');
-            o.value = o.textContent = r;
-            if (r === cur) o.selected = true;
-            sel.appendChild(o);
-        });
+        if (regions.length === 1) {
+            sel.innerHTML = `<option value="">${regions[0]}</option>`;
+        } else {
+            sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
+            regions.forEach(r => {
+                const o = document.createElement('option');
+                o.value = o.textContent = r;
+                if (r === cur) o.selected = true;
+                sel.appendChild(o);
+            });
+        }
     }
 
     // ── INTERACTION STATE ───────────────────────────────────────
@@ -541,7 +553,190 @@ const Tab6 = (() => {
         _renderTimeline(t, ext);
         _renderActivities(actividades);
         _renderHistory(t);
+
+        // Aplicar restricciones de edición según permisos del usuario
+        _applyBlockPermissions();
     }
+
+    // ── Aplica permisos de edición a bloques del ticket ──────────
+    function _applyBlockPermissions() {
+        const canEditClasif    = Permissions.canEdit('edit_clasificacion');
+        const canEditNotas     = Permissions.canEdit('edit_notas_tecnicas');
+        const canEditTickets   = Permissions.canEdit('edit_tickets_seguimiento');
+        const canEditOM        = Permissions.canEdit('edit_datos_om');
+        const canEditAnySOC    = canEditClasif || canEditNotas || canEditTickets;
+
+        // ── Bloque 1: Clasificación (botones causa + SOC resuelto) ──
+        const lockedSOC = _hasSavedDataSOC && !_editModeSOC;
+        document.querySelectorAll('.t6-cause-btn, .t6-soc-btn').forEach(b => {
+            if (!canEditClasif) {
+                b.style.pointerEvents = 'none';
+                b.style.opacity = '0.5';
+                b.style.filter = 'grayscale(100%)';
+                b.title = 'Sin permiso de edición';
+            } else {
+                b.style.pointerEvents = lockedSOC ? 'none' : '';
+                b.style.opacity = lockedSOC ? '0.5' : '';
+                b.style.filter = lockedSOC ? 'grayscale(100%)' : '';
+                b.title = '';
+            }
+        });
+        document.querySelectorAll('.t6-msg-option').forEach(lbl => {
+            const inp = lbl.querySelector('input');
+            if (inp) inp.disabled = !canEditClasif || lockedSOC;
+            lbl.style.pointerEvents = (!canEditClasif || lockedSOC) ? 'none' : '';
+            lbl.style.opacity = (!canEditClasif || lockedSOC) ? '0.5' : '';
+            lbl.style.filter = (!canEditClasif || lockedSOC) ? 'grayscale(100%)' : '';
+        });
+
+        // ── Bloque 2: Notas Técnicas (textarea de observaciones) ───
+        const descField = document.getElementById('t6-desc-field');
+        if (descField) {
+            if (!canEditNotas) {
+                descField.disabled = true;
+                descField.style.opacity = '0.85';
+                descField.title = 'Sin permiso de edición';
+            } else {
+                descField.disabled = _hasSavedDataSOC && !_editModeSOC;
+                descField.style.opacity = '';
+                descField.title = '';
+            }
+        }
+
+        // ── Bloque 3: Tickets de Seguimiento (CC / TT / WO) ────────
+        // Mostrar valores como texto de solo lectura si no tiene permiso de edición
+        ['t6-cc-field', 't6-tt-field', 't6-wo-field'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (!canEditTickets) {
+                // Solo lectura: mostrar valor claramente pero sin poder editar
+                el.disabled = true;
+                el.style.backgroundColor = 'transparent';
+                el.style.border = '1px solid var(--gray-300)';
+                el.style.opacity = '1'; // valor completamente visible
+                el.style.cursor = 'default';
+                el.style.fontWeight = '500';
+                el.title = 'Solo lectura – Sin permiso de edición';
+            } else {
+                el.disabled = _hasSavedDataSOC && !_editModeSOC;
+                el.style.backgroundColor = '';
+                el.style.border = '';
+                el.style.opacity = '';
+                el.style.cursor = '';
+                el.style.fontWeight = '';
+                el.title = '';
+            }
+        });
+
+        // ── Botón "Editar SOC": visible solo si puede editar algún sub-bloque ──
+        const btnEditarSOC = document.getElementById('t6-btn-editar-soc');
+        if (btnEditarSOC) {
+            if (!canEditAnySOC) {
+                btnEditarSOC.style.display = 'none';
+            }
+            // Si sí puede, el estado normal lo maneja _updateFormButtonsSOC()
+        }
+
+        // ── Etiqueta de solo lectura en el bloque SOC si no puede editar ──
+        _ensureReadonlyBadge('t6-modern-col-right', canEditAnySOC);
+
+        // ── Botones Guardar/Cancelar SOC: ocultar si no puede editar nada ──
+        if (!canEditAnySOC) {
+            const btnGuardarSOC  = document.getElementById('t6-btn-guardar-soc');
+            const btnCancelarSOC = document.getElementById('t6-btn-cancelar-soc');
+            if (btnGuardarSOC)  btnGuardarSOC.style.display  = 'none';
+            if (btnCancelarSOC) btnCancelarSOC.style.display = 'none';
+        }
+
+        // ── Bloque 4: Datos O&M ─────────────────────────────────────
+        ['t6-om-hora-contacto-fecha', 't6-om-hora-contacto-hora',
+         't6-om-dia-visita-fecha',   't6-om-dia-visita-hora'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (!canEditOM) {
+                el.disabled = true;
+                el.style.opacity = '0.85';
+                el.title = 'Sin permiso de edición';
+            } else {
+                el.disabled = _hasSavedDataOM && !_editModeOM;
+                el.style.opacity = '';
+                el.title = '';
+            }
+        });
+
+        // ── Visibilidad de Cronogramas ──
+        const canViewCronogramaEvento = typeof Permissions !== 'undefined' ? Permissions.canView('view_cronograma_evento') : true;
+        const canViewCronogramaAct = typeof Permissions !== 'undefined' ? Permissions.canView('view_cronograma_actividades') : true;
+
+        document.querySelectorAll('#t6-timeline-container').forEach(container => {
+            container.style.display = canViewCronogramaEvento ? 'block' : 'none';
+        });
+
+        document.querySelectorAll('#t6-activities-container').forEach(container => {
+            container.style.display = canViewCronogramaAct ? 'block' : 'none';
+        });
+
+        // ── Botón "Editar OM": visible solo si tiene permiso ────────
+        const btnEditarOM = document.getElementById('t6-btn-editar-om');
+        if (btnEditarOM) {
+            if (!canEditOM) {
+                btnEditarOM.style.display = 'none';
+            } else {
+                // Restaurar si tiene permiso (puede haber sido ocultado antes)
+                if (btnEditarOM.style.display === 'none') {
+                    btnEditarOM.style.display = _hasSavedDataOM ? 'inline-flex' : 'none';
+                }
+            }
+        }
+
+        // ── Botones Guardar/Cancelar OM: ocultar si no puede editar ─
+        if (!canEditOM) {
+            const btnGuardarOM   = document.getElementById('t6-btn-guardar-om');
+            const btnCancelarOM  = document.getElementById('t6-btn-cancelar-om');
+            if (btnGuardarOM)  btnGuardarOM.style.display  = 'none';
+            if (btnCancelarOM) btnCancelarOM.style.display = 'none';
+        }
+    }
+
+    // ── Helper: Inserta o quita pastilla "Solo lectura" ──
+    function _ensureReadonlyBadge(containerId, canEdit) {
+        // Limpiar badge anterior dondequiera que esté
+        document.querySelectorAll('.t6-readonly-badge').forEach(b => b.remove());
+
+        if (!canEdit) {
+            const detailForm = document.getElementById('t6-detail-form');
+            if (!detailForm) return;
+
+            const leftCard = detailForm.querySelector('.t6-modern-card');
+            if (!leftCard) return;
+
+            // Envolver la tarjeta izquierda en una columna flex para poder poner cosas debajo sin romper la grilla
+            let colLeft = leftCard.parentElement;
+            if (!colLeft.classList.contains('t6-modern-col-left')) {
+                colLeft = document.createElement('div');
+                colLeft.className = 't6-modern-col-left';
+                colLeft.style.cssText = 'display: flex; flex-direction: column; gap: 16px; align-self: start;';
+                leftCard.parentNode.insertBefore(colLeft, leftCard);
+                colLeft.appendChild(leftCard);
+                // Restaurar el align-self de la tarjeta si lo tenía
+                leftCard.style.alignSelf = 'stretch';
+            }
+
+            const badge = document.createElement('div');
+            badge.className = 't6-readonly-badge';
+            badge.innerHTML = '🔒 Solo lectura';
+            badge.style.cssText =
+                'display:inline-flex;align-items:center;justify-content:center;gap:6px;' +
+                'background:rgba(220,38,38,0.09);color:#dc2626;' +
+                'border:1px solid rgba(220,38,38,0.25);' +
+                'border-radius:100px;padding:6px 16px;' +
+                'font-size:0.8rem;font-weight:600;' +
+                'width: fit-content;';
+            
+            colLeft.appendChild(badge);
+        }
+    }
+
 
     // ── Causa & Mensajes ──────────────────────────────────────
     const MENSAJES = {
@@ -671,7 +866,11 @@ const Tab6 = (() => {
         } else {
             btnGuardar.style.display = 'none';
             btnCancelar.style.display = 'none';
-            btnEditar.style.display = _hasSavedDataSOC ? 'inline-flex' : 'none';
+            // Mostrar "Editar SOC" si tiene algún permiso SOC (haya o no datos previos)
+            const canEditAnySOC = Permissions.canEdit('edit_clasificacion') ||
+                                  Permissions.canEdit('edit_notas_tecnicas') ||
+                                  Permissions.canEdit('edit_tickets_seguimiento');
+            btnEditar.style.display = canEditAnySOC ? 'inline-flex' : 'none';
         }
     }
 
@@ -690,7 +889,9 @@ const Tab6 = (() => {
         } else {
             btnGuardar.style.display = 'none';
             btnCancelar.style.display = 'none';
-            btnEditar.style.display = _hasSavedDataOM ? 'inline-flex' : 'none';
+            // Mostrar "Editar O&M" si tiene permiso (haya o no datos previos)
+            const canEdit = Permissions.canEdit('edit_datos_om');
+            btnEditar.style.display = canEdit ? 'inline-flex' : 'none';
         }
     }
 
@@ -704,9 +905,16 @@ const Tab6 = (() => {
         
         document.querySelectorAll('.t6-cause-btn,.t6-soc-btn').forEach(b => {
             b.style.pointerEvents = locked ? 'none' : '';
-            b.style.opacity = locked ? '0.65' : '';
+            b.style.opacity = locked ? '0.5' : '';
+            b.style.filter = locked ? 'grayscale(100%)' : '';
         });
-        document.querySelectorAll('.t6-msg-option input').forEach(inp => inp.disabled = locked);
+        document.querySelectorAll('.t6-msg-option').forEach(lbl => {
+            const inp = lbl.querySelector('input');
+            if (inp) inp.disabled = locked;
+            lbl.style.pointerEvents = locked ? 'none' : '';
+            lbl.style.opacity = locked ? '0.5' : '';
+            lbl.style.filter = locked ? 'grayscale(100%)' : '';
+        });
         
         _updateFormButtonsSOC();
         _updateOMFields();
@@ -772,20 +980,25 @@ const Tab6 = (() => {
         const now = new Date().toISOString();
         const prevExt = _getExt(_activeId);
 
+        const user = Auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
+        
         await _setExt(_activeId, {
             causaIncidencia:       causa,
             mensajePredeterminado: msgPred,
             resueltoRemotoSoc:     resSOC,
             woNumber:              wo,
             causaTs:  causa  ? (prevExt.causaTs  || now) : null,
+            causaUser: causa ? (prevExt.causaUser || userName) : null,
             ccTs:     cc     ? (prevExt.ccTs     || now) : null,
+            ccUser:   cc     ? (prevExt.ccUser   || userName) : null,
             ttTs:     tt     ? (prevExt.ttTs     || now) : null,
+            ttUser:   tt     ? (prevExt.ttUser   || userName) : null,
             woTs:     (wo || resSOC) ? (prevExt.woTs || now) : null,
+            woUser:   (wo || resSOC) ? (prevExt.woUser || userName) : null,
             estado:   'En curso'
         });
 
-        const user = Auth.getUser();
-        const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
         const oldStatus = prevExt.estado || 'Abierto';
         
         await _addActivity(_activeId, {
@@ -886,13 +1099,24 @@ const Tab6 = (() => {
         const team   = _calcTeam(t, ext);
         const cerradoPor = ext.cerradoPor || t.cerradoPor || '—';
 
+        const acts = Array.isArray(ext.actividades) ? ext.actividades : [];
+        function findUser(ts, explicitUser) {
+            if (explicitUser) return explicitUser;
+            if (!ts) return null;
+            const tTime = new Date(ts).getTime();
+            for (let a of acts) {
+                if (Math.abs(new Date(a.fecha).getTime() - tTime) < 3000) return a.autor;
+            }
+            return null;
+        }
+
         const steps = [
-            { label: 'REGISTRO',        time: t.createdAt,     done: true            },
-            { label: 'CLASIFICACIÓN',   time: ext.causaTs,     done: !!causa         },
-            { label: 'CC',              time: ext.ccTs,        done: !!cc            },
-            { label: 'TT',              time: ext.ttTs,        done: !!tt            },
-            { label: 'WO',              time: ext.woTs,        done: !!(wo || resSOC), noNeed: resSOC },
-            { label: 'HORA DE CIERRE', time: fc,              done: !!fc            },
+            { label: 'REGISTRO',        time: t.createdAt,     done: true,             user: t.createdBy },
+            { label: 'CLASIFICACIÓN',   time: ext.causaTs,     done: !!causa,          user: findUser(ext.causaTs, ext.causaUser) },
+            { label: 'CC',              time: ext.ccTs,        done: !!cc,             user: findUser(ext.ccTs, ext.ccUser) },
+            { label: 'TT',              time: ext.ttTs,        done: !!tt,             user: findUser(ext.ttTs, ext.ttUser) },
+            { label: 'WO',              time: ext.woTs,        done: !!(wo || resSOC), noNeed: resSOC, user: findUser(ext.woTs, ext.woUser) },
+            { label: 'HORA DE CIERRE',  time: fc,              done: !!fc,             user: cerradoPor },
         ];
 
         const stepsHTML = steps.map((s, i) => {
@@ -908,14 +1132,51 @@ const Tab6 = (() => {
             } else {
                 subHTML = '';
             }
+
+            let durationHTML = '';
+            if (s.time && s.done && !s.noNeed) {
+                // Find next valid step
+                let nextValidStep = null;
+                let stepDiff = 0;
+                for (let j = i + 1; j < steps.length; j++) {
+                    if (steps[j].done && !steps[j].noNeed && steps[j].time) {
+                        nextValidStep = steps[j];
+                        stepDiff = j - i;
+                        break;
+                    }
+                }
+                
+                if (nextValidStep) {
+                    const ms = new Date(nextValidStep.time) - new Date(s.time);
+                    if (ms >= 0) {
+                        const h = Math.floor(ms / 3600000);
+                        const m = Math.floor((ms % 3600000) / 60000);
+                        let durText = '';
+                        if (h >= 24) {
+                            const d = Math.floor(h / 24);
+                            const rem_h = h % 24;
+                            durText = `${d}d ${rem_h}h`;
+                        } else {
+                            durText = `${h}h ${m}m`;
+                        }
+                        
+                        const w = stepDiff * 100;
+                        const r = (stepDiff * 100) - 50;
+                        durationHTML = `<div class="tl2-duration" style="width: ${w}%; right: -${r}%;">${durText}</div>`;
+                    }
+                }
+            }
+
             return `
             <div class="tl2-step ${stepCls}">
                 <div class="tl2-node">
                     <div class="tl2-dot ${dotCls}"></div>
+                    ${durationHTML}
                 </div>
                 <div class="tl2-body">
                     <div class="tl2-label">${s.label}</div>
                     ${subHTML}
+                    ${s.user && s.done && !s.noNeed ? `<div class="tl2-user">${s.user}</div>` : ''}
                 </div>
             </div>`;
         }).join('');

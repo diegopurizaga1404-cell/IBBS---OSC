@@ -413,16 +413,20 @@ const TabAdmin = (() => {
                     <select class="form-select role-edit-select" style="margin-right: 8px;">
                         <option value="user" ${sol.role === 'user' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_USER')}</option>
                         <option value="editor" ${sol.role === 'editor' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_EDITOR')}</option>
+                        <option value="tecnico" ${sol.role === 'tecnico' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_TECNICO')}</option>
                         <option value="admin" ${sol.role === 'admin' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_ADMIN')}</option>
                     </select>
+                    <button class="btn-primary btn-permisos" style="padding: 4px 10px; font-size: 0.8rem; margin-right: 8px;" title="Configurar Permisos">⚙️ Permisos</button>
                     <button class="btn-disable">${I18n.translate('ADMIN_BTN_DISABLE')}</button>
                     <button class="btn-delete">${I18n.translate('ADMIN_BTN_DELETE')}</button>
                 `;
                 const roleSelect = actionsContainer.querySelector('.role-edit-select');
+                const btnPermisos = actionsContainer.querySelector('.btn-permisos');
                 const btnDisable = actionsContainer.querySelector('.btn-disable');
                 const btnDelete = actionsContainer.querySelector('.btn-delete');
                 
                 roleSelect.addEventListener('change', (e) => _updateUserRole(sol, e.target.value, roleSelect));
+                btnPermisos.addEventListener('click', () => _openPermissionsModal(sol));
                 btnDisable.addEventListener('click', () => _disableUser(sol, btnDisable, card));
                 btnDelete.addEventListener('click', () => renderConfirmActions('delete'));
             } else if (isSuspended) {
@@ -430,6 +434,7 @@ const TabAdmin = (() => {
                     <select class="form-select role-edit-select" style="margin-right: 8px;">
                         <option value="user" ${sol.role === 'user' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_USER')}</option>
                         <option value="editor" ${sol.role === 'editor' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_EDITOR')}</option>
+                        <option value="tecnico" ${sol.role === 'tecnico' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_TECNICO')}</option>
                         <option value="admin" ${sol.role === 'admin' ? 'selected' : ''}>${I18n.translate('ADMIN_ROLE_ADMIN')}</option>
                     </select>
                     <button class="btn-enable">${I18n.translate('ADMIN_BTN_ENABLE')}</button>
@@ -567,12 +572,150 @@ const TabAdmin = (() => {
         });
     }
 
+    // ── Permissions Modal ─────────────────────────────────────────
+
+    const PERM_KEYS = [
+        'perm_dashboard', 'perm_entidades_crear', 'perm_entidades_tickets',
+        'perm_biblioteca',
+        'region_todas', 'region_ar', 'region_an', 'region_ll', 'region_sm',
+        'edit_clasificacion', 'edit_notas_tecnicas', 'edit_tickets_seguimiento',
+        'edit_datos_om',
+        'view_cronograma_evento', 'view_cronograma_actividades'
+    ];
+
+    async function _openPermissionsModal(sol) {
+        // Populate header
+        document.getElementById('perm-modal-user-name').textContent = sol.nombre;
+        document.getElementById('perm-modal-user-email').textContent = sol.email;
+        const initials = sol.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        document.getElementById('perm-modal-avatar').textContent = initials;
+
+        // Load existing permissions or fall back to role preset
+        const { data } = await window.supabaseDb
+            .from('user_permissions')
+            .select('*')
+            .eq('user_email', sol.email)
+            .maybeSingle();
+
+        const presets = Permissions.getPresets();
+        const current = data || presets[sol.role] || presets.editor;
+
+        // Set checkbox states
+        PERM_KEYS.forEach(key => {
+            const el = document.querySelector(`#perm-modal input[name="${key}"]`);
+            if (el) el.checked = current[key] !== false;
+        });
+
+        // Interactivity for Regions
+        const cbTodas = document.querySelector('#perm-modal input[name="region_todas"]');
+        const cbRegions = [
+            document.querySelector('#perm-modal input[name="region_ar"]'),
+            document.querySelector('#perm-modal input[name="region_an"]'),
+            document.querySelector('#perm-modal input[name="region_ll"]'),
+            document.querySelector('#perm-modal input[name="region_sm"]')
+        ].filter(Boolean);
+
+        if (cbTodas) {
+            cbTodas.onchange = (e) => {
+                if (e.target.checked) {
+                    cbRegions.forEach(cb => cb.checked = true);
+                }
+            };
+        }
+
+        cbRegions.forEach(cb => {
+            cb.onchange = (e) => {
+                if (!e.target.checked && cbTodas) {
+                    cbTodas.checked = false;
+                }
+            };
+        });
+
+        // Set preset selector to match saved preset or detect
+        const presetSel = document.getElementById('perm-preset-select');
+        let roleVal = (data && data.role_preset) ? data.role_preset : sol.role;
+        // Compatibilidad con roles antiguos en base de datos
+        if (roleVal === 'tecnico_om') roleVal = 'tecnico';
+        
+        presetSel.value = roleVal;
+
+        // Wire save button
+        document.getElementById('perm-save-btn').onclick = () => _savePermissions(sol);
+
+        // Show modal
+        document.getElementById('perm-modal').style.display = 'flex';
+    }
+
+    function _applyPreset(presetName) {
+        const preset = Permissions.getPreset(presetName);
+        if (!preset) return;
+        PERM_KEYS.forEach(key => {
+            const el = document.querySelector(`#perm-modal input[name="${key}"]`);
+            if (el) el.checked = preset[key] !== false;
+        });
+    }
+
+    async function _savePermissions(sol) {
+        const saveBtn = document.getElementById('perm-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando...';
+
+        const updates = {
+            user_email: sol.email,
+            role_preset: document.getElementById('perm-preset-select').value,
+            updated_at: new Date().toISOString()
+        };
+        PERM_KEYS.forEach(key => {
+            const el = document.querySelector(`#perm-modal input[name="${key}"]`);
+            if (el) updates[key] = el.checked;
+        });
+
+        const { error } = await window.supabaseDb
+            .from('user_permissions')
+            .upsert(updates, { onConflict: 'user_email' });
+
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Guardar Permisos';
+
+        if (error) {
+            Toast.show('❌ Error al guardar permisos: ' + error.message, 'error');
+        } else {
+            Toast.show(`✅ Permisos de "${sol.nombre}" actualizados correctamente.`, 'success');
+            document.getElementById('perm-modal').style.display = 'none';
+            if (sol.email === Auth.getUser()?.email) {
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        }
+    }
+
+    function _initPermissionsModal() {
+        // Close button
+        document.getElementById('perm-modal-close')?.addEventListener('click', () => {
+            document.getElementById('perm-modal').style.display = 'none';
+        });
+        // Close on backdrop click
+        document.getElementById('perm-modal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('perm-modal')) {
+                document.getElementById('perm-modal').style.display = 'none';
+            }
+        });
+        // Cancel button
+        document.getElementById('perm-cancel-btn')?.addEventListener('click', () => {
+            document.getElementById('perm-modal').style.display = 'none';
+        });
+        // Preset selector
+        document.getElementById('perm-preset-select')?.addEventListener('change', (e) => {
+            if (e.target.value) _applyPreset(e.target.value);
+        });
+    }
+
     // ── Init ─────────────────────────────────────────────────
     function init() {
         if (!Auth.isAdmin()) return; // Guard: only admins
         _updateAdminBadge();
+        _initPermissionsModal();
         window.addEventListener('langChanged', () => render());
     }
 
-    return { init, render, updateBadge: _updateAdminBadge };
+    return { init, render, updateBadge: _updateAdminBadge, openPermissions: _openPermissionsModal };
 })();

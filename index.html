@@ -285,6 +285,11 @@
               <h2 data-i18n="T1_TITLE">Creación de Registro</h2>
               <p data-i18n="T1_SUBTITLE">Completa los datos del solicitante y la ubicación de la entidad afectada.</p>
             </div>
+            <div>
+              <button id="btn-solo-entidades" class="btn btn-outline" style="display: flex; align-items: center; gap: 8px;">
+                <span class="icon">🏢</span> <span data-i18n="T1_BTN_SOLO_ENTIDADES">IBBS Issues</span>
+              </button>
+            </div>
           </div>
 
           <div id="t1-draft-badge" class="draft-badge hidden">
@@ -295,7 +300,7 @@
           <div class="two-panel">
 
             <!-- Left: Datos del solicitante -->
-            <div class="card">
+            <div class="card" id="t1-panel-solicitante">
               <div class="card-header">
                 <div class="card-icon">👤</div>
                 <div>
@@ -730,7 +735,7 @@
               </div>
 
               <!-- 4. CRONOGRAMA DE ACTIVIDADES -->
-              <div class="t6-section-card">
+              <div class="t6-section-card" id="t6-activities-container">
                 <div class="t6-section-header">📋 Cronograma de actividades</div>
                 <div id="t6-activities-list">
                   <em style="color:var(--gray-400);font-size:.85rem">Sin actividades registradas.</em>
@@ -1186,7 +1191,7 @@
         </div>
 
         <!-- ── 4. CRONOGRAMA DE ACTIVIDADES ── -->
-        <div class="t6-section-card">
+        <div class="t6-section-card" id="t6-activities-container">
           <div class="t6-section-header">📋 Cronograma de actividades</div>
           <div id="t6-activities-list">
             <em style="color:var(--gray-400);font-size:.85rem">Sin actividades registradas.</em>
@@ -1239,6 +1244,80 @@
     </div>
   </div><!-- /modal-t6-update -->
 
+  <!-- ════════════════════════════════════════
+     MODAL PERMISOS DE USUARIO
+  ══════════════════════════════════════════ -->
+  <div id="perm-modal" class="perm-modal-overlay" style="display:none;">
+    <div class="perm-modal-box">
+      <div class="perm-modal-header">
+        <div style="display:flex; align-items:center; gap: 12px;">
+          <div id="perm-modal-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;"></div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; color: var(--gray-800);">Permisos de <span id="perm-modal-user-name"></span></h3>
+            <span id="perm-modal-user-email" style="font-size: 0.8rem; color: var(--gray-500);"></span>
+          </div>
+        </div>
+        <button id="perm-modal-close" style="background:transparent; border:none; font-size:1.5rem; color:var(--gray-400); cursor:pointer;">✕</button>
+      </div>
+      <div class="perm-modal-body">
+        
+        <div class="perm-preset-row">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--gray-600);">Heredar desde rol:</label>
+          <select id="perm-preset-select" class="form-select" style="max-width: 200px;">
+            <option value="admin">Administrador</option>
+            <option value="editor">Editor</option>
+            <option value="tecnico">Técnico O&M</option>
+            <option value="viewer">Solo lectura</option>
+          </select>
+        </div>
+
+        <div class="perm-section">
+          <h4>📌 Visibilidad del menú</h4>
+          <div class="perm-grid">
+            <label class="perm-check"><input type="checkbox" name="perm_dashboard"> Dashboard</label>
+            <label class="perm-check"><input type="checkbox" name="perm_entidades_crear"> Entidades: Crear Registro</label>
+            <label class="perm-check"><input type="checkbox" name="perm_entidades_tickets"> Entidades: Registros</label>
+            <label class="perm-check"><input type="checkbox" name="perm_biblioteca"> Biblioteca</label>
+          </div>
+        </div>
+
+        <div class="perm-section">
+          <h4>📍 Visibilidad por Regiones</h4>
+          <div class="perm-grid">
+            <label class="perm-check"><input type="checkbox" name="region_todas"> Todas las regiones</label>
+            <label class="perm-check"><input type="checkbox" name="region_ar"> Arequipa (AR)</label>
+            <label class="perm-check"><input type="checkbox" name="region_an"> Ancash (AN)</label>
+            <label class="perm-check"><input type="checkbox" name="region_ll"> La Libertad (LL)</label>
+            <label class="perm-check"><input type="checkbox" name="region_sm"> San Martín (SM)</label>
+          </div>
+        </div>
+
+        <div class="perm-section">
+          <h4>✏️ Edición en Entidades</h4>
+          <div class="perm-grid">
+            <label class="perm-check"><input type="checkbox" name="edit_clasificacion"> Clasificación y Causas</label>
+            <label class="perm-check"><input type="checkbox" name="edit_notas_tecnicas"> Notas Técnicas (Descripción)</label>
+            <label class="perm-check"><input type="checkbox" name="edit_tickets_seguimiento"> Tickets de Seguimiento (CC/TT/WO)</label>
+            <label class="perm-check"><input type="checkbox" name="edit_datos_om"> Datos O&M (Fechas y Horas)</label>
+          </div>
+        </div>
+
+        <div class="perm-section">
+          <h4>👁️ Visibilidad en Entidades</h4>
+          <div class="perm-grid">
+            <label class="perm-check"><input type="checkbox" name="view_cronograma_evento"> Cronograma del Evento</label>
+            <label class="perm-check"><input type="checkbox" name="view_cronograma_actividades"> Cronograma de Actividades</label>
+          </div>
+        </div>
+
+      </div>
+      <div class="perm-modal-footer">
+        <button id="perm-cancel-btn" class="btn btn-secondary">Cancelar</button>
+        <button id="perm-save-btn" class="btn btn-primary">💾 Guardar Permisos</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════
      SCRIPTS
 ══════════════════════════════ -->
@@ -1255,6 +1334,7 @@
 
   <!-- Core App JS -->
   <script src="js/supabase.js"></script>
+  <script src="js/permissions.js"></script>
   <script src="js/auth.js"></script>
 
   <!-- App scripts (order matters) -->

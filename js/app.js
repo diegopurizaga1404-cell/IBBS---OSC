@@ -5,6 +5,14 @@
 
 const App = (() => {
 
+    // Mapa de tab → clave de permiso de visibilidad
+    const NAV_PERM_MAP = {
+        'tab-dashboard': 'perm_dashboard',
+        'tab1':          'perm_entidades_crear',
+        'tab6':          'perm_entidades_tickets',
+        'tab5':          'perm_biblioteca',
+    };
+
     const TABS = {
         'tab-dashboard': { key: 'NAV_DASHBOARD', section: 'NAV_ENTITIES', onEnter: () => TabDashboard.render() },
         'tab1': { key: 'NAV_CREATE_REG', section: 'NAV_ENTITIES', onEnter: () => { } },
@@ -150,11 +158,31 @@ const App = (() => {
         });
     }
 
+    // ── Aplica permisos de visibilidad al menú lateral ─────────────
+    function _applyNavPermissions() {
+        // Primero: ocultar ítems sin permiso
+        document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+            const tabId = item.dataset.tab;
+            const permKey = NAV_PERM_MAP[tabId];
+            if (permKey && !Permissions.canView(permKey)) {
+                item.style.display = 'none';
+                // Eliminar del router para impedir navegación directa
+                delete TABS[tabId];
+            }
+        });
+
+        // Segundo: ocultar secciones que hayan quedado vacías
+        document.querySelectorAll('.nav-section').forEach(section => {
+            const visibleItems = section.querySelectorAll('.nav-items .nav-item:not([style*="display: none"])').length;
+            if (visibleItems === 0) section.style.display = 'none';
+        });
+    }
+
     async function init() {
         // Show loading
         document.getElementById('app-loading').style.display = 'flex';
 
-        // Wait for session config
+        // Wait for session config (also loads Permissions)
         const isAuth = await Auth.checkSession();
         if(!isAuth) return;
 
@@ -205,8 +233,12 @@ const App = (() => {
             try { TabAdmin.init(); } catch(e) { console.error('Error init TabAdmin:', e); }
         }
 
-        // Always start at Create Record (tab1) on initial load
-        navigateTo('tab1');
+        // Aplicar restricciones de menú según permisos del usuario
+        _applyNavPermissions();
+
+        // Navegar a la primera tab disponible
+        const defaultTab = Object.keys(TABS).find(k => k !== 'tab-admin') || 'tab1';
+        navigateTo(defaultTab);
 
         await updateBadges();
     }

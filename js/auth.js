@@ -18,7 +18,10 @@ const Auth = (() => {
     // Store user data and role mapping
     _user = session.user;
     _role = _user?.user_metadata?.role || 'user';
-    
+
+    // Cargar permisos granulares para este usuario
+    await Permissions.load();
+
     return true;
   }
 

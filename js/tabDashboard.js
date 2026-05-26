@@ -23,7 +23,8 @@ const TabDashboard = (() => {
     }
 
     async function render() {
-        _allTickets = await Store.getTickets('entidades');
+        const rawTickets = await Store.getTickets('entidades');
+        _allTickets = rawTickets.filter(t => typeof Permissions !== 'undefined' ? Permissions.canViewRegion(t.region) : true);
         _populateRegionFilter(_allTickets);
         
         // Initial defaults if empty
@@ -344,13 +345,17 @@ const TabDashboard = (() => {
         if (!sel) return;
         const currentVal = sel.value;
         const regions = [...new Set(tickets.map(t => t.region).filter(Boolean))].sort();
-        sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
-        regions.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = r;
-            if (r === currentVal) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        if (regions.length === 1) {
+            sel.innerHTML = `<option value="">${regions[0]}</option>`;
+        } else {
+            sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
+            regions.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = r;
+                if (r === currentVal) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
     }
 
     return { init, render };

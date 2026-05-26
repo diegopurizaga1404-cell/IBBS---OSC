@@ -15,7 +15,8 @@ const Tab4 = (() => {
   }
 
   async function render() {
-    const tickets = await Store.getTickets('soc');
+    const ticketsRaw = await Store.getTickets('soc');
+    const tickets = ticketsRaw.filter(t => typeof Permissions !== 'undefined' ? Permissions.canViewRegion(t.region) : true);
     const sortOrder = document.getElementById('t4-sort').value;
     const filterStatus = document.getElementById('t4-filter-status').value;
     const filterRegion = document.getElementById('t4-filter-region').value;
@@ -127,7 +128,7 @@ const Tab4 = (() => {
           </div>
           ${ (Auth.isAdmin() || Auth.getRole() === 'editor') ? `
           <div class="ticket-actions">
-            <button class="btn btn-primary" onclick="Tab4.editDesc('${t.id}')">${I18n.translate('BTN_EDIT_DESC')}</button>
+              <button class="btn btn-primary" onclick="Tab4.editDesc('${t.id}')">${I18n.translate('BTN_EDIT_DESC')}</button>
 
             ${Auth.isAdmin() ? `
               <button class="btn btn-danger" id="del-btn-${t.id}" onclick="_confirmDelete('${t.id}', Tab4.deleteTicket)">${I18n.translate('BTN_DELETE')}</button>
@@ -229,13 +230,17 @@ const Tab4 = (() => {
     const sel = document.getElementById('t4-filter-region');
     const cur = sel.value;
     const regions = [...new Set(tickets.map(t => t.region))].sort();
-    sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
-    regions.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = r;
-      if (r === cur) opt.selected = true;
-      sel.appendChild(opt);
-    });
+    if (regions.length === 1) {
+      sel.innerHTML = `<option value="">${regions[0]}</option>`;
+    } else {
+      sel.innerHTML = `<option value="">${I18n.translate('T2_ALL_REGIONS')}</option>`;
+      regions.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = r;
+        if (r === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
   }
 
   function _populateTipoFilter(tickets) {

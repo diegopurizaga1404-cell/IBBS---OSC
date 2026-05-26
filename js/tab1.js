@@ -21,7 +21,8 @@ const Tab1 = (() => {
         const selTipo = document.getElementById('t1-tipo');
         const selInst = document.getElementById('t1-institucion');
 
-        _populateSelect(selRegion, DataManager.getRegiones(), 'PH_SELECT_REGION');
+        const allowedRegs = DataManager.getRegiones().filter(r => typeof Permissions !== 'undefined' ? Permissions.canViewRegion(r) : true);
+        _populateSelect(selRegion, allowedRegs, 'PH_SELECT_REGION');
         
         selRegion.addEventListener('change', () => {
             _reset([selProv, selLoc, selTipo, selInst]);
@@ -121,9 +122,28 @@ const Tab1 = (() => {
         }
     }
 
+    let _isSoloEntidades = false;
+
     // ── Buttons ────────────────────────────────────────────
     function _bindButtons() {
         document.getElementById('btn-t1-finalizar').addEventListener('click', _onFinalizar);
+        
+        const btnSoloEntidades = document.getElementById('btn-solo-entidades');
+        if (btnSoloEntidades) {
+            btnSoloEntidades.addEventListener('click', () => {
+                _isSoloEntidades = !_isSoloEntidades;
+                const panel = document.getElementById('t1-panel-solicitante');
+                if (_isSoloEntidades) {
+                    btnSoloEntidades.classList.remove('btn-outline');
+                    btnSoloEntidades.classList.add('btn-primary'); // Make it look active
+                    if (panel) panel.classList.add('panel-disabled');
+                } else {
+                    btnSoloEntidades.classList.add('btn-outline');
+                    btnSoloEntidades.classList.remove('btn-primary');
+                    if (panel) panel.classList.remove('panel-disabled');
+                }
+            });
+        }
         
         const searchInput = document.getElementById('t1-search-entity');
         const searchBtn = document.getElementById('t1-btn-search');
@@ -228,13 +248,24 @@ const Tab1 = (() => {
 
     async function _onFinalizar() {
         // Validate left-panel fields
-        const nombre = document.getElementById('t1-nombre').value.trim();
-        const dni = document.getElementById('t1-dni').value.trim();
-        const cel = document.getElementById('t1-celular').value.trim();
-        const fechaInc = document.getElementById('t1-fecha').value;
-        const horaInc = document.getElementById('t1-hora').value;
+        let nombre = document.getElementById('t1-nombre').value.trim();
+        let dni = document.getElementById('t1-dni').value.trim();
+        let cel = document.getElementById('t1-celular').value.trim();
+        let fechaInc = document.getElementById('t1-fecha').value;
+        let horaInc = document.getElementById('t1-hora').value;
+        let email = document.getElementById('t1-email').value.trim();
+        let descripcion = document.getElementById('t1-desc').value.trim();
 
-        if (!nombre || !dni || !cel || !fechaInc || !horaInc) {
+        if (_isSoloEntidades) {
+            nombre = "-";
+            dni = "-";
+            cel = "-";
+            email = "";
+            descripcion = "";
+            const now = new Date();
+            fechaInc = now.toISOString().split('T')[0];
+            horaInc = now.toTimeString().split(' ')[0].substring(0, 5);
+        } else if (!nombre || !dni || !cel || !fechaInc || !horaInc) {
             Toast.show('Nombre, DNI, Celular, Fecha y Hora son obligatorios.', 'error');
             return;
         }
@@ -259,10 +290,10 @@ const Tab1 = (() => {
             id: 'ENT-' + Date.now(),
             tipo_tab: 'entidad',
             nombre, dni, cel,
-            email: document.getElementById('t1-email').value.trim(),
+            email,
             fechaInc,
             horaInc,
-            descripcion: document.getElementById('t1-desc').value.trim(),
+            descripcion,
             region, provincia, localidad, tipo, institucion,
             createdAt: now.toISOString(),
             createdBy,
@@ -282,6 +313,17 @@ const Tab1 = (() => {
     }
 
     function _resetForm() {
+        _isSoloEntidades = false;
+        const btnSoloEntidades = document.getElementById('btn-solo-entidades');
+        const panel = document.getElementById('t1-panel-solicitante');
+        if (btnSoloEntidades) {
+            btnSoloEntidades.classList.add('btn-outline');
+            btnSoloEntidades.classList.remove('btn-primary');
+        }
+        if (panel) {
+            panel.classList.remove('panel-disabled');
+        }
+
         ['t1-nombre', 't1-dni', 't1-celular', 't1-email', 't1-fecha', 't1-hora', 't1-desc'].forEach(id => {
             document.getElementById(id).value = '';
         });
