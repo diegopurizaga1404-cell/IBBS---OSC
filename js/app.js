@@ -60,7 +60,8 @@ const App = (() => {
     async function updateBadges() {
         const entidadesList = await Store.getTickets('entidades');
         const entCount = entidadesList.filter(t => !(t.generadoCC && t.resuelto === 'confirmado')).length;
-        const entTotalCount = entidadesList.length;
+        // Only count tickets with estado 'Abierto' (or no estado set) for the badge
+        const entAbiertoCount = entidadesList.filter(t => (t.estado || 'Abierto') === 'Abierto').length;
         const socCount = (await Store.getTickets('soc')).filter(t => t.resuelto !== 'confirmado').length;
 
         const b2 = document.getElementById('badge-tab2');
@@ -68,7 +69,7 @@ const App = (() => {
         const b4 = document.getElementById('badge-tab4');
 
         if (b2) { b2.textContent = entCount || ''; b2.classList.toggle('hidden', entCount === 0); }
-        if (b6) { b6.textContent = entTotalCount || ''; b6.classList.toggle('hidden', entTotalCount === 0); }
+        if (b6) { b6.textContent = entAbiertoCount || ''; b6.classList.toggle('hidden', entAbiertoCount === 0); }
         if (b4) { b4.textContent = socCount || ''; b4.classList.toggle('hidden', socCount === 0); }
     }
 
@@ -241,6 +242,9 @@ const App = (() => {
         navigateTo('tab1');
 
         await updateBadges();
+
+        // Real-time badge refresh every 30 seconds
+        setInterval(updateBadges, 30000);
     }
 
     return { init, navigateTo, updateBadges };

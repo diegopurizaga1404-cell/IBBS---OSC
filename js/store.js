@@ -63,8 +63,9 @@ const Store = (() => {
             estado: row.estado || 'Abierto',
             causaIncidencia: row.causa_incidencia || null,
             mensajePredeterminado: row.mensaje_predeterminado || null,
-            resueltoRemotoSoc: row.resuelto_remoto_soc || null,
+            resueltoRemotoSoc: row.resuelto_remoto_soc != null ? row.resuelto_remoto_soc : null,
             equipoRegistro: row.equipo_registro || null,
+            tipoRegistro: row.tipo_registro || null,
             equipoResolutor: row.equipo_resolutor || null,
             cerradoPor: row.cerrado_por || null,
             fechaCierre: row.fecha_cierre || null,
@@ -101,6 +102,7 @@ const Store = (() => {
             generado_cc: t.generadoCC,
             resuelto: t.resuelto,
             finalizado: t.finalizado || false,
+            tipo_registro: t.tipoRegistro || null,
             created_at: t.createdAt,
             created_by: t.createdBy || null,
         };
@@ -200,6 +202,7 @@ const Store = (() => {
             .eq('id', id);
         if (error) {
             console.error('Store.updateTicket error:', error);
+            alert('Error al guardar en base de datos: ' + (error.message || JSON.stringify(error)));
             throw error;
         }
     }

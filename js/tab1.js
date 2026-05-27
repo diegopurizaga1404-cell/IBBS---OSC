@@ -289,6 +289,7 @@ const Tab1 = (() => {
         const ticket = {
             id: 'ENT-' + Date.now(),
             tipo_tab: 'entidad',
+            tipoRegistro: _isSoloEntidades ? 'IBBS Issues' : 'Usuario',
             nombre, dni, cel,
             email,
             fechaInc,

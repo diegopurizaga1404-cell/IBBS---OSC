@@ -215,8 +215,11 @@ const Tab6 = (() => {
                                (estado === 'En curso') ? I18n.translate('T6_KPI_PROGRESS') : 
                                I18n.translate('T6_KPI_CLOSED');
             const typeLabel = _translateType(t.tipo);
+            const tipoRegRaw = t.tipoRegistro || (t.nombre === '-' ? 'IBBS Issues' : 'Usuario');
+            const tipoReg = tipoRegRaw === 'Usuario' ? I18n.translate('T6_REG_TYPE_USER') : tipoRegRaw;
             return `<tr>
               <td><span class="t6-entity-link" onclick="Tab6.openModal('${t.id}')">${t.institucion || '—'}</span></td>
+              <td>${tipoReg}</td>
               <td>${typeLabel}</td>
               <td>${t.region || '—'}</td>
               <td>${_fmtFull(t.createdAt)}</td>
@@ -225,6 +228,7 @@ const Tab6 = (() => {
               <td>${t.ttNumber || '—'}</td>
               <td>${ext.woNumber || t.woNumber || '—'}</td>
               <td>${ext.equipoRegistro || t.createdBy || '—'}</td>
+              <td>${(t.fechaInc && t.horaInc) ? _fmtFull(`${t.fechaInc}T${t.horaInc}`) : '—'}</td>
               <td>${_calcTeam(t, ext)}</td>
               <td style="text-align: center;">${ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—'}</td>
               <td style="text-align: center;">${ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—'}</td>
@@ -238,14 +242,16 @@ const Tab6 = (() => {
           <table class="t6-table">
             <thead><tr>
               <th>${I18n.translate('COL_ENTITY')}</th>
+              <th>${I18n.translate('T6_COL_REG_TYPE')}</th>
               <th>${I18n.translate('COL_TYPE')}</th>
               <th>${I18n.translate('COL_REGION')}</th>
-              <th>${I18n.translate('T6_COL_START_TIME')}</th>
+              <th>${I18n.translate('T6_COL_REG_DATE')}</th>
               <th>${I18n.translate('COL_STATUS')}</th>
               <th>CC</th>
               <th>TT</th>
               <th>WO</th>
               <th>${I18n.translate('T6_COL_TEAM_REG')}</th>
+              <th>${I18n.translate('T6_COL_INCIDENT_TIME')}</th>
               <th>${I18n.translate('T6_COL_TEAM_RES')}</th>
               <th style="text-align: center;">${I18n.translate('T6_COL_LLAMADA_ENTIDAD').toUpperCase()}</th>
               <th style="text-align: center;">${I18n.translate('T6_COL_VISITA_PREVISTA').toUpperCase()}</th>
@@ -359,7 +365,7 @@ const Tab6 = (() => {
     function _translateType(type) {
         if (!type) return '—';
         if (type === 'Institución Educativa') return I18n.translate('TYPE_IE');
-        if (type === 'Comisaría') return I18n.translate('TYPE_COMISARIA');
+        if (type === 'Comisaría' || type === 'Comisaria') return I18n.translate('TYPE_COMISARIA');
         if (type === 'Hospital') return I18n.translate('TYPE_HOSPITAL');
         if (type === 'CAD Tipo B' || type === 'CAD Type B') return I18n.translate('TYPE_CAD');
         if (type === 'Plaza') return I18n.translate('TYPE_PLAZA');
@@ -484,9 +490,13 @@ const Tab6 = (() => {
         _renderMensajes(causa, msgPred);
 
         // SOC buttons
+        let isResSOC = null;
+        if (resSOC === true || resSOC === 'true') isResSOC = true;
+        else if (resSOC === false || resSOC === 'false') isResSOC = false;
+
         document.querySelectorAll('.t6-soc-btn').forEach(b => {
             const v = b.dataset.val === 'true';
-            b.classList.toggle('active', resSOC === v);
+            b.classList.toggle('active', isResSOC === v);
         });
 
         // Fields

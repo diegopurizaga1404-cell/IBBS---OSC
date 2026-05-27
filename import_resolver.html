@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>IBBS – Importar Resolver</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+    h1 { font-family: sans-serif; font-size: 1.25rem; color: #7dd3fc; margin-bottom: 1.5rem; }
+    #panel {
+      background: #1e293b; border-radius: 8px; padding: 1.5rem;
+      max-width: 780px; margin: 0 auto;
+    }
+    #summary {
+      display: flex; gap: 2rem; margin-bottom: 1.5rem;
+      font-family: sans-serif; font-size: 0.9rem;
+    }
+    .stat { text-align: center; }
+    .stat .n { font-size: 2rem; font-weight: 700; }
+    .stat .l { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+    .n-total   { color: #7dd3fc; }
+    .n-ok      { color: #4ade80; }
+    .n-err     { color: #f87171; }
+    .n-skip    { color: #fbbf24; }
+
+    #btn {
+      display: block; width: 100%; padding: 0.75rem;
+      background: #2563eb; color: #fff; border: none; border-radius: 6px;
+      font-size: 1rem; cursor: pointer; margin-bottom: 1.5rem; font-family: sans-serif;
+    }
+    #btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+    #log {
+      height: 380px; overflow-y: auto; font-size: 0.78rem;
+      border: 1px solid #334155; border-radius: 4px; padding: 0.75rem;
+      background: #0f172a; line-height: 1.6;
+    }
+    .ok   { color: #4ade80; }
+    .err  { color: #f87171; }
+    .info { color: #94a3b8; }
+    .warn { color: #fbbf24; }
+  </style>
+</head>
+<body>
+<div id="panel">
+  <h1>IBBS &mdash; Importar Resolver.xlsx a Supabase</h1>
+
+  <div id="summary">
+    <div class="stat"><div class="n n-total" id="n-total">–</div><div class="l">Total</div></div>
+    <div class="stat"><div class="n n-ok"    id="n-ok">0</div><div class="l">Insertados</div></div>
+    <div class="stat"><div class="n n-err"   id="n-err">0</div><div class="l">Errores</div></div>
+    <div class="stat"><div class="n n-skip"  id="n-skip">0</div><div class="l">Saltados (dup)</div></div>
+  </div>
+
+  <button id="btn" onclick="runImport()">Iniciar importación</button>
+
+  <div id="log"><span class="info">Listo. Presiona el botón para comenzar.</span></div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://nxvgyredtsktgrqkfczg.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_RluZvox2aeRiDZyRU8RXbQ_51fs6eST';
+  const { createClient } = window.supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const log  = document.getElementById('log');
+  const nTot = document.getElementById('n-total');
+  const nOk  = document.getElementById('n-ok');
+  const nErr = document.getElementById('n-err');
+  const nSkp = document.getElementById('n-skip');
+
+  let ok = 0, err = 0, skp = 0;
+
+  function addLog(msg, cls = 'info') {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  async function runImport() {
+    document.getElementById('btn').disabled = true;
+    log.innerHTML = '';
+    ok = 0; err = 0; skp = 0;
+    nOk.textContent = nErr.textContent = nSkp.textContent = '0';
+
+    addLog('Cargando resolver_import.json…');
+
+    let records;
+    try {
+      const res = await fetch('./data/resolver_import.json');
+      records = await res.json();
+    } catch (e) {
+      addLog('ERROR al cargar el JSON: ' + e.message, 'err');
+      document.getElementById('btn').disabled = false;
+      return;
+    }
+
+    nTot.textContent = records.length;
+    addLog(`${records.length} registros encontrados. Iniciando inserción…\n`);
+
+    for (let i = 0; i < records.length; i++) {
+      const r = records[i];
+      const label = `[${pad(i+1)}/${pad(records.length)}] ${r.id} — ${r.institucion}`;
+
+      // Construir objeto para la tabla (solo columnas existentes)
+      const row = {
+        id:                   r.id,
+        tipo_tab:             r.tipo_tab,
+        nombre:               r.nombre   || null,
+        dni:                  r.dni      || null,
+        cel:                  r.cel      || null,
+        email:                r.email    || null,
+        fecha_inc:            r.fecha_inc,
+        hora_inc:             r.hora_inc,
+        descripcion:          r.descripcion         || null,
+        soc_detalles:         r.soc_detalles        || null,
+        region:               r.region,
+        provincia:            r.provincia,
+        localidad:            r.localidad,
+        tipo:                 r.tipo,
+        institucion:          r.institucion,
+        estado:               r.estado,
+        causa_incidencia:     r.causa_incidencia    || null,
+        generado_cc:          r.generado_cc         ?? false,
+        resuelto:             r.resuelto,
+        finalizado:           r.finalizado          ?? false,
+        cc_number:            r.cc_number           || null,
+        tt_number:            r.tt_number           || null,
+        wo_number:            r.wo_number           || null,
+        equipo_resolutor:     r.equipo_resolutor    || null,
+        cerrado_por:          r.cerrado_por         || null,
+        fecha_cierre:         r.fecha_cierre        || null,
+        om_hora_contacto:     r.om_hora_contacto    || null,
+        om_dia_visita:        r.om_dia_visita       || null,
+        created_at:           r.created_at,
+        created_by:           r.created_by          || null,
+      };
+
+      const { error } = await db.from('tickets_entidades').insert([row]);
+
+      if (!error) {
+        ok++;
+        nOk.textContent = ok;
+        addLog(`✓ ${label}`, 'ok');
+      } else if (error.code === '23505') {
+        // duplicate key
+        skp++;
+        nSkp.textContent = skp;
+        addLog(`↷ ${label}  (ya existe, saltado)`, 'warn');
+      } else {
+        err++;
+        nErr.textContent = err;
+        addLog(`✗ ${label}  → ${error.message}`, 'err');
+      }
+
+      // Pequeña pausa para no saturar la API
+      await new Promise(res => setTimeout(res, 120));
+    }
+
+    addLog('');
+    addLog(`══ Importación terminada: ${ok} OK  |  ${skp} duplicados  |  ${err} errores ══`,
+           err > 0 ? 'err' : 'ok');
+    document.getElementById('btn').disabled = false;
+    document.getElementById('btn').textContent = 'Volver a ejecutar';
+  }
+</script>
+</body>
+</html>

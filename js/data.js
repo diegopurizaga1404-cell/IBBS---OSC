@@ -17,16 +17,26 @@ const DataManager = (() => {
       fetch('data/COLEGIOS.json').then(r => r.json()).catch(() => ({})),
     ]);
     
-    // Clean up Excel-converted date strings in Localidad field
+    // Clean up Excel-converted date strings/serials in Localidad field
     const dateToName = {
+      // ISO string format (from older exports)
       '2025-10-09 00:00:00': '9 DE OCTUBRE',
       '2025-06-24 00:00:00': '24 DE JUNIO',
       '2025-05-03 00:00:00': '3 DE MAYO',
-      '2025-05-02 00:00:00': '2 DE MAYO'
+      '2025-05-02 00:00:00': '2 DE MAYO',
+      // Numeric serial format (from newer COM exports)
+      '45939': '9 DE OCTUBRE',
+      '45832': '24 DE JUNIO',
+      '45780': '3 DE MAYO',
+      '45779': '2 DE MAYO'
     };
     ent.forEach(r => {
-      if (r.Localidad && dateToName[r.Localidad]) {
-        r.Localidad = dateToName[r.Localidad];
+      if (r.Localidad && dateToName[String(r.Localidad)]) {
+        r.Localidad = dateToName[String(r.Localidad)];
+      }
+      // Normalize any broken encoding of CAMPAÑA
+      if (r.Localidad && typeof r.Localidad === 'string') {
+        r.Localidad = r.Localidad.replace(/CAMPI[^\s"]*/g, 'CAMPA\u00d1A');
       }
     });
 

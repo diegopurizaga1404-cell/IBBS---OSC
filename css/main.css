@@ -1469,6 +1469,17 @@ body.dark-mode .enlace-desc a {
   }
 }
 
+/* Toast dark mode fixes */
+body.dark-mode .toast {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+body.dark-mode .toast.success { background: #166534; color: #f0fdf4; border-color: #15803d; }
+body.dark-mode .toast.error   { background: #991b1b; color: #fef2f2; border-color: #dc2626; }
+body.dark-mode .toast.warning { background: #92400e; color: #fffbeb; border-color: #d97706; }
+
 /* ═══════════════════════════════════════
    PAGE HEADER
 ═══════════════════════════════════════ */
@@ -3219,6 +3230,10 @@ body.dark-mode .t6-modern-input, body.dark-mode .t6-modern-textarea { background
 body.dark-mode .t6-modern-input:disabled, body.dark-mode .t6-modern-textarea:disabled { background: var(--gray-50); color: var(--gray-500); }
 body.dark-mode .t6-btn-cancelar { background: var(--gray-200); border-color: var(--gray-400); color: var(--gray-800); }
 body.dark-mode .t6-btn-cancelar:hover { background: var(--gray-300); }
+body.dark-mode .t6-btn-editar { background: #1a3a5c; border-color: #2a5a8c; color: #7ec8f0; }
+body.dark-mode .t6-btn-editar:hover { background: #1e4870; border-color: #3a7ab0; color: #a8dcff; }
+body.dark-mode .t6-btn-guardar { background: var(--brand-pink); color: #ffffff; border: none; }
+body.dark-mode .t6-btn-guardar:hover:not(:disabled) { background: var(--brand-pink-dark); color: #ffffff; }
 
 /* ── Modern Radio Buttons ── */
 .t6-modern-radio-group {
