@@ -208,6 +208,7 @@ const App = (() => {
         if (userDisplayEl) userDisplayEl.textContent = displayName;
 
         Toast.init();
+        I18n.init(); // Ensure saved language is applied before rendering any UI
         _initSidebar();
         initTheme();
         _initLangListener();
@@ -236,9 +237,8 @@ const App = (() => {
         // Aplicar restricciones de menú según permisos del usuario
         _applyNavPermissions();
 
-        // Navegar a la primera tab disponible
-        const defaultTab = Object.keys(TABS).find(k => k !== 'tab-admin') || 'tab1';
-        navigateTo(defaultTab);
+        // Navegar a Creacion de Registro como tab por defecto
+        navigateTo('tab1');
 
         await updateBadges();
     }

@@ -988,14 +988,13 @@ const Tab6 = (() => {
             mensajePredeterminado: msgPred,
             resueltoRemotoSoc:     resSOC,
             woNumber:              wo,
+            ccNumber:              cc,
+            ttNumber:              tt,
+            socDetalles:           desc,
             causaTs:  causa  ? (prevExt.causaTs  || now) : null,
-            causaUser: causa ? (prevExt.causaUser || userName) : null,
             ccTs:     cc     ? (prevExt.ccTs     || now) : null,
-            ccUser:   cc     ? (prevExt.ccUser   || userName) : null,
             ttTs:     tt     ? (prevExt.ttTs     || now) : null,
-            ttUser:   tt     ? (prevExt.ttUser   || userName) : null,
             woTs:     (wo || resSOC) ? (prevExt.woTs || now) : null,
-            woUser:   (wo || resSOC) ? (prevExt.woUser || userName) : null,
             estado:   'En curso'
         });
 
@@ -1288,41 +1287,41 @@ const Tab6 = (() => {
 
         document.getElementById('t6-hm-body').innerHTML = `
         <div class="t6-section-card">
-            <div class="t6-section-header">👤 Registro</div>
+            <div class="t6-section-header">👤 ${I18n.translate('T6_HM_REGISTRO')}</div>
             <div class="t6-reg-grid">
-                <div class="t6-reg-field"><span class="t6-reg-label">Nombre Completo</span><span class="t6-reg-val">${t.nombre||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">DNI</span><span class="t6-reg-val">${t.dni||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Celular</span><span class="t6-reg-val">${t.cel||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Correo Electrónico</span><span class="t6-reg-val">${t.email||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Tiempo de Inicio</span><span class="t6-reg-val">${(t.fechaInc||'—')+' '+(t.horaInc||'')}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Región</span><span class="t6-reg-val">${t.region||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Provincia</span><span class="t6-reg-val">${t.provincia||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Localidad</span><span class="t6-reg-val">${t.localidad||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Tipo</span><span class="t6-reg-val">${t.tipo||'—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Descripción Reportada</span><span class="t6-reg-val">${t.descripcion||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_NOMBRE')}</span><span class="t6-reg-val">${t.nombre||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_DNI')}</span><span class="t6-reg-val">${t.dni||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_CELULAR')}</span><span class="t6-reg-val">${t.cel||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_EMAIL')}</span><span class="t6-reg-val">${t.email||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_TIEMPO_INICIO')}</span><span class="t6-reg-val">${(t.fechaInc||'—')+' '+(t.horaInc||'')}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_REGION')}</span><span class="t6-reg-val">${t.region||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_PROVINCIA')}</span><span class="t6-reg-val">${t.provincia||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_LOCALIDAD')}</span><span class="t6-reg-val">${t.localidad||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_TIPO')}</span><span class="t6-reg-val">${t.tipo||'—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_DESC_REPORTADA')}</span><span class="t6-reg-val">${t.descripcion||'—'}</span></div>
             </div>
         </div>
 
         <div class="t6-section-card">
-            <div class="t6-section-header">📊 Clasificación y Seguimiento</div>
+            <div class="t6-section-header">📊 ${I18n.translate('T6_HM_CLASIF_SEGUIMIENTO')}</div>
             <div class="t6-reg-grid">
-                <div class="t6-reg-field"><span class="t6-reg-label">Estado</span><span class="ticket-badge ${bc}">${st}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Clasificación</span><span class="t6-reg-val">${causa}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_ESTADO')}</span><span class="ticket-badge ${bc}">${st}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_CLASIFICACION')}</span><span class="t6-reg-val">${causa}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">CC</span><span class="t6-reg-val">${cc}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">TT</span><span class="t6-reg-val">${tt}</span></div>
                 <div class="t6-reg-field"><span class="t6-reg-label">WO</span><span class="t6-reg-val">${resSOC ? '<em style="color:var(--gray-400)">NO NEED</em>' : wo}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Team Resolutor</span><span class="t6-reg-val">${team}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Cerrado por</span><span class="t6-reg-val">${cerradoPor}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Hora de Cierre</span><span class="t6-reg-val">${fc ? _fmtFull(fc) : '—'}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Duración</span><span class="t6-reg-val">${dur}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Hora de contacto a la entidad</span><span class="t6-reg-val">${ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—')}</span></div>
-                <div class="t6-reg-field"><span class="t6-reg-label">Día de visita técnica previsto</span><span class="t6-reg-val">${ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—')}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_TEAM_RES')}</span><span class="t6-reg-val">${team}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_CERRADO_POR')}</span><span class="t6-reg-val">${cerradoPor}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_HORA_CIERRE')}</span><span class="t6-reg-val">${fc ? _fmtFull(fc) : '—'}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_DURACION')}</span><span class="t6-reg-val">${dur}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_HORA_CONTACTO')}</span><span class="t6-reg-val">${ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—')}</span></div>
+                <div class="t6-reg-field"><span class="t6-reg-label">${I18n.translate('T6_HM_DIA_VISITA')}</span><span class="t6-reg-val">${ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—')}</span></div>
             </div>
         </div>
 
         ${t.socDetalles ? `
         <div class="t6-section-card">
-            <div class="t6-section-header">📝 Notas Técnicas</div>
+            <div class="t6-section-header">📝 ${I18n.translate('T6_HM_NOTAS_TEC')}</div>
             <p style="font-size:.85rem;color:var(--gray-700);line-height:1.6;white-space:pre-wrap;margin:0">${t.socDetalles}</p>
         </div>` : ''}`;
 

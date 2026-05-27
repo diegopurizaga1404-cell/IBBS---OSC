@@ -2414,7 +2414,8 @@ body.dark-mode .t6-table thead th { background: var(--blue-800); }
 body.dark-mode .t6-table tbody tr { border-bottom-color: var(--gray-200); }
 body.dark-mode .t6-table tbody tr:hover { background: rgba(0, 156, 222, 0.15); }
 body.dark-mode .t6-table tbody td { color: var(--gray-500); }
-body.dark-mode .t6-table tbody tr:hover td:first-child { background: rgba(0, 156, 222, 0.2) !important; }
+/* Use a solid color (#002b42 is an approximation of the rgba blend over #0a0a0a) to prevent overlapping text from showing through the sticky column */
+body.dark-mode .t6-table tbody tr:hover td:first-child { background: #002b42 !important; }
 
 /* ═══════════════════════════════════════
    TAB 6 – DETAIL INLINE VIEW
@@ -4226,6 +4227,92 @@ body.sidebar-collapsed #user-profile-box {
   transition: margin-left .2s ease-in-out, width .2s ease-in-out !important;
 }
 
+/* ═══════════════════════════════════════════
+   ADMIN PERMISSIONS MODAL
+═══════════════════════════════════════════ */
+.perm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 33, 71, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.perm-modal-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+body.dark-mode .perm-modal-box {
+  background: var(--gray-900);
+  border: 1px solid var(--gray-800);
+}
+
+.perm-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: var(--gray-50);
+}
+body.dark-mode .perm-modal-header {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
+.perm-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.perm-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--gray-200);
+}
+body.dark-mode .perm-preset-row { border-color: var(--gray-700); }
+
+.perm-section {
+  margin-bottom: 20px;
+}
+
+.perm-section h4 { font-size: 0.95rem; color: #00a8e8; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; font-weight: 700; }
+body.dark-mode .perm-section h4 { color: #00a8e8; }
+
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 24px;
+}
 
 
+.perm-check { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--gray-700); cursor: pointer; transition: opacity 0.2s; user-select: none; } .perm-check:hover { opacity: 0.8; } body.dark-mode .perm-check { color: var(--gray-300); } .perm-check input[type='checkbox'] { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid var(--gray-400); border-radius: 4px; background-color: transparent; display: grid; place-content: center; cursor: pointer; flex-shrink: 0; margin: 0; transition: all 0.2s ease-in-out; } body.dark-mode .perm-check input[type='checkbox'] { border-color: var(--gray-600); } .perm-check input[type='checkbox']::before { content: ''; width: 10px; height: 10px; transform: scale(0); box-shadow: inset 1em 1em white; background-color: white; transform-origin: bottom left; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); transition: 120ms transform ease-in-out; } .perm-check input[type='checkbox']:checked { background-color: #00a8e8; border-color: #00a8e8; } .perm-check input[type='checkbox']:checked::before { transform: scale(1); }
 
+.perm-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fff;
+}
+body.dark-mode .perm-modal-footer {
+  background: var(--gray-900);
+  border-color: var(--gray-700);
+}
