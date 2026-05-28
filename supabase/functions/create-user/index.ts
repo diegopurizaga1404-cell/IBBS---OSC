@@ -39,16 +39,38 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+    // Parse request body
+    const { nombre, email, password, solicitudId, role, action, emails } = await req.json()
+    const act = action || 'create'
+
+    // list-team: accessible to any authenticated user — only returns name+email for a given email list
+    if (act === 'list-team') {
+      const targets: string[] = Array.isArray(emails) ? emails.map((e: string) => e.toLowerCase()) : []
+      let page = 1
+      const nameMap: Record<string, string> = {}
+      while (true) {
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 })
+        if (error || !data?.users?.length) break
+        data.users.forEach((u: any) => {
+          if (targets.includes(u.email?.toLowerCase())) {
+            nameMap[u.email.toLowerCase()] = u.user_metadata?.full_name || u.user_metadata?.name || u.email.split('@')[0]
+          }
+        })
+        if (data.users.length < 100) break
+        page++
+      }
+      return new Response(
+        JSON.stringify({ success: true, nameMap }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const callerRole = caller.user_metadata?.role
     if (callerRole !== 'admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-
-    // Parse request body
-    const { nombre, email, password, solicitudId, role, action } = await req.json()
-    const act = action || 'create'
 
     // Validate required fields based on action
     if (act === 'create') {

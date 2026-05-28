@@ -78,6 +78,8 @@ const Store = (() => {
             woTs: row.wo_ts || null,
             omHoraTs: row.om_hora_ts || null,
             omVisitaTs: row.om_visita_ts || null,
+            asignadoA: row.asignado_a || null,
+            asignadoTs: row.asignado_ts || null,
             createdAt: row.created_at,
             createdBy: row.created_by || null,
         };
@@ -103,6 +105,8 @@ const Store = (() => {
             resuelto: t.resuelto,
             finalizado: t.finalizado || false,
             tipo_registro: t.tipoRegistro || null,
+            asignado_a: t.asignadoA || null,
+            asignado_ts: t.asignadoTs || null,
             created_at: t.createdAt,
             created_by: t.createdBy || null,
         };

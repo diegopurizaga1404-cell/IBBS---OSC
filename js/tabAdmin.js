@@ -662,6 +662,7 @@ const TabAdmin = (() => {
 
         const updates = {
             user_email: sol.email,
+            user_name: sol.nombre,
             role_preset: document.getElementById('perm-preset-select').value,
             updated_at: new Date().toISOString()
         };

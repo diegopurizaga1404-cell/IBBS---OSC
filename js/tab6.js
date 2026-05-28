@@ -26,6 +26,8 @@ const Tab6 = (() => {
             fechaCierre: t.fechaCierre,
             equipoRegistro: t.equipoRegistro,
             equipoResolutor: t.equipoResolutor,
+            asignadoA: t.asignadoA,
+            asignadoTs: t.asignadoTs,
             actividades: acts ? (typeof acts === 'string' ? JSON.parse(acts) : acts) : [],
             omHoraContacto: t.omHoraContacto,
             omDiaVisita: t.omDiaVisita,
@@ -342,6 +344,8 @@ const Tab6 = (() => {
     }
 
     function _calcTeam(t, ext) {
+        const resolutor = ext.equipoResolutor || t.equipoResolutor;
+        if (resolutor) return `Team ${resolutor}`;
         const wo = ext.woNumber || t.woNumber;
         if (wo) return 'Team O&M';
         return 'Team OSC';
@@ -445,6 +449,7 @@ const Tab6 = (() => {
             document.getElementById('t6-list-view').style.display = 'none';
             document.getElementById('t6-detail-inline').style.display = 'flex';
             window.scrollTo(0, 0);
+            _prefetchOscNames(); // warm up names cache in background
         } catch (e) {
             alert("Error in openModal: " + e.stack);
             console.error(e);
@@ -472,6 +477,18 @@ const Tab6 = (() => {
         document.getElementById('t6-header-status-badge').innerHTML = `<span class="ticket-badge ${bc}" style="margin:0">${st}</span>`;
         document.getElementById('t6-modal-createdby').textContent = t.createdBy || '—';
         document.getElementById('t6-modal-createdat').textContent = _fmtFull(t.createdAt);
+        const asignadoA = ext.asignadoA || t.asignadoA;
+        const asignadoTs = ext.asignadoTs || t.asignadoTs;
+        const asignadoMeta = document.getElementById('t6-asignado-meta');
+        if (asignadoMeta) {
+            if (asignadoA) {
+                document.getElementById('t6-modal-asignado').textContent = asignadoA;
+                document.getElementById('t6-modal-asignado-ts').textContent = _fmtFull(asignadoTs);
+                asignadoMeta.style.display = '';
+            } else {
+                asignadoMeta.style.display = 'none';
+            }
+        }
 
         // Registro
         document.getElementById('t6-reg-nombre').textContent = t.nombre || '—';
@@ -1394,6 +1411,171 @@ const Tab6 = (() => {
         Toast.show('Estado actualizado.', 'success');
     }
 
+    // ── Asignar sub-modal ─────────────────────────────────────
+    let _asignarSelected = null;
+
+    const _OSC_TEAM_EMAILS = [
+        'andytrujillo@oscteam.com',
+        'diegopuri@oscteam.com',
+        'eliasma@oscteam.com',
+        'franklinro@oscteam.com',
+        'giancarlosjhu@oscteam.com',
+        'mariogab044@oscteam.com',
+        'miguelic@oscteam.com',
+        'renatoti@oscteam.com',
+        'yuricarra@oscteam.com',
+    ];
+
+    // In-memory cache so the Edge Function is called at most once per session
+    let _oscNamesCache = null;
+    let _oscNamesFetching = false;
+
+    async function _prefetchOscNames() {
+        if (_oscNamesCache || _oscNamesFetching) return;
+        _oscNamesFetching = true;
+        try {
+            const session = (await window.supabaseDb.auth.getSession()).data.session;
+            const res = await fetch('https://nxvgyredtsktgrqkfczg.supabase.co/functions/v1/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'list-team', emails: _OSC_TEAM_EMAILS }),
+            });
+            const result = await res.json();
+            if (result.nameMap) {
+                _oscNamesCache = new Map(Object.entries(result.nameMap));
+            }
+        } catch (_) { /* silent — fallback names will be used */ }
+        _oscNamesFetching = false;
+    }
+
+    async function openAsignarModal() {
+        _asignarSelected = null;
+        document.getElementById('t6-btn-asignar-confirm').disabled = true;
+        document.getElementById('modal-t6-asignar').classList.add('open');
+        _renderOscUsers(); // render immediately (cached or fallback names)
+        if (!_oscNamesCache) {
+            // Names not ready yet — fetch and re-render when done
+            await _prefetchOscNames();
+            _renderOscUsers();
+        }
+    }
+
+    function closeAsignarModal() {
+        document.getElementById('modal-t6-asignar').classList.remove('open');
+        _asignarSelected = null;
+    }
+
+    function _renderOscUsers() {
+        const list = document.getElementById('t6-asignar-user-list');
+        const nameMap = _oscNamesCache || new Map();
+        const currentUserEmail = (Auth.getUser()?.email || '').toLowerCase();
+        const sortedEmails = [..._OSC_TEAM_EMAILS].sort((a, b) => {
+            if (a.toLowerCase() === currentUserEmail) return -1;
+            if (b.toLowerCase() === currentUserEmail) return 1;
+            return a.localeCompare(b);
+        });
+
+        list.innerHTML = '';
+        sortedEmails.forEach(email => {
+            const key = email.toLowerCase();
+            const name = nameMap.get(key) || email.split('@')[0];
+            const isSelf = key === currentUserEmail;
+            const item = document.createElement('div');
+            item.className = 't6-asignar-user-item';
+            item.dataset.email = email;
+            item.dataset.name = name;
+            item.innerHTML = `
+                <div class="t6-asignar-avatar">${name.charAt(0).toUpperCase()}</div>
+                <div class="t6-asignar-info">
+                    <span class="t6-asignar-name">${name}${isSelf ? ' <span class="t6-asignar-self-badge">Tú</span>' : ''}</span>
+                    <span class="t6-asignar-email">${email}</span>
+                </div>`;
+            item.addEventListener('click', () => {
+                list.querySelectorAll('.t6-asignar-user-item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                _asignarSelected = { email, name };
+                document.getElementById('t6-btn-asignar-confirm').disabled = false;
+            });
+            list.appendChild(item);
+        });
+    }
+
+    async function submitAsignar() {
+        if (!_activeId || !_asignarSelected) return;
+        const { name } = _asignarSelected;
+        const now = new Date().toISOString();
+        const user = Auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
+
+        await _setExt(_activeId, { asignadoA: name, asignadoTs: now });
+
+        await _addActivity(_activeId, {
+            tipo: 'Asignado',
+            autor: userName,
+            fecha: now,
+            descripcion: `Incidente asignado a ${name}`,
+        });
+
+        closeAsignarModal();
+        const t = _allTickets.find(tk => tk.id === _activeId);
+        if (t) _populateModal(t, _getExt(t.id));
+        await render();
+        Toast.show(`Asignado a ${name}. ✔`, 'success');
+    }
+
+    // ── Escalar sub-modal ─────────────────────────────────────
+    let _escalarTeam = null;
+
+    function openEscalarModal() {
+        _escalarTeam = null;
+        document.getElementById('t6-escalar-comment').value = '';
+        document.getElementById('escalar-om').classList.remove('selected');
+        document.getElementById('escalar-tsc').classList.remove('selected');
+        document.getElementById('t6-btn-escalar-confirm').disabled = true;
+        document.getElementById('modal-t6-escalar').classList.add('open');
+    }
+
+    function closeEscalarModal() {
+        document.getElementById('modal-t6-escalar').classList.remove('open');
+        _escalarTeam = null;
+    }
+
+    function selectEscalarTeam(team) {
+        _escalarTeam = team;
+        document.getElementById('escalar-om').classList.toggle('selected', team === 'O&M');
+        document.getElementById('escalar-tsc').classList.toggle('selected', team === 'TSC');
+        document.getElementById('t6-btn-escalar-confirm').disabled = false;
+    }
+
+    async function submitEscalar() {
+        if (!_activeId || !_escalarTeam) return;
+        const team = _escalarTeam;
+        const comment = document.getElementById('t6-escalar-comment').value.trim();
+        const user = Auth.getUser();
+        const userName = user?.user_metadata?.full_name || user?.email || 'Usuario';
+        const ext = _getExt(_activeId);
+        const oldStatus = ext.estado || 'Abierto';
+        const newStatus = oldStatus === 'Abierto' ? 'En curso' : oldStatus;
+
+        await _setExt(_activeId, { equipoResolutor: team, estado: newStatus });
+
+        await _addActivity(_activeId, {
+            tipo: 'Escalado',
+            autor: userName,
+            fecha: new Date().toISOString(),
+            descripcion: comment || `Incidente escalado a ${team}`,
+            cambioEstado: oldStatus !== newStatus ? `${oldStatus} → ${newStatus}` : undefined,
+            equipo: team,
+        });
+
+        closeEscalarModal();
+        const t = _allTickets.find(tk => tk.id === _activeId);
+        if (t) _populateModal(t, _getExt(t.id));
+        await render();
+        App.updateBadges();
+        Toast.show(`Incidente escalado a ${team}. ✔`, 'success');
+    }
+
     // ── Export ────────────────────────────────────────────────
     function exportExcel() {
         try {
@@ -1403,10 +1585,15 @@ const Tab6 = (() => {
                 const ext = _getExt(t.id);
                 return {
                     'ID': t.id,
+                    'Tipo de Registro': (() => { const raw = t.tipoRegistro || (t.nombre === '-' ? 'IBBS Issues' : 'Usuario'); return raw === 'Usuario' ? 'Customer Complaint' : raw; })(),
                     'Nombre Completo': t.nombre || '—',
                     'DNI': t.dni || '—',
                     'Celular': t.cel || '—',
-                    'Tiempo de Inicio': t.createdAt ? _fmtFull(t.createdAt) : '—',
+                    'Correo Electrónico': t.email || '—',
+                    'Fecha Incidente': t.fechaInc || '—',
+                    'Hora Incidente': t.horaInc || '—',
+                    'Registrado Por': t.createdBy || '—',
+                    'Tiempo de Registro': t.createdAt ? _fmtFull(t.createdAt) : '—',
                     'Región': t.region || '—',
                     'Provincia': t.provincia || '—',
                     'Localidad': t.localidad || '—',
@@ -1414,17 +1601,19 @@ const Tab6 = (() => {
                     'Entidad': t.institucion || '—',
                     'Estado': ext.estado || 'Abierto',
                     'Causa Incidencia': ext.causaIncidencia || t.causaIncidencia || '—',
+                    'Mensaje Predeterminado': ext.mensajePredeterminado || t.mensajePredeterminado || '—',
+                    '¿Resuelta Remoto SOC?': (ext.resueltoRemotoSoc != null ? ext.resueltoRemotoSoc : t.resueltoRemotoSoc) === true ? 'Sí' : (ext.resueltoRemotoSoc != null ? ext.resueltoRemotoSoc : t.resueltoRemotoSoc) === false ? 'No' : '—',
+                    'Observaciones SOC': t.socDetalles || '—',
                     'CC': t.ccNumber || '—',
                     'TT': t.ttNumber || '—',
                     'WO': ext.woNumber || t.woNumber || '—',
+                    'Hora Contacto Entidad (O&M)': ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—'),
+                    'Día Visita Técnica Previsto (O&M)': ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—'),
                     'Team Resolvió': _calcTeam(t, ext),
                     'Usuario Resolutor': ext.cerradoPor || t.cerradoPor || '—',
                     'Hora de Cierre': ext.fechaCierre ? _fmtFull(ext.fechaCierre) : '—',
                     'Duración': _calcDuration(t.createdAt, ext.fechaCierre),
                     'Descripción Reportada': t.descripcion || '—',
-                    'Detalles SOC': t.socDetalles || '—',
-                    'Hora Contacto Entidad': ext.omHoraContacto === 'N/A' ? 'N/A' : (ext.omHoraContacto ? _fmtFull(ext.omHoraContacto) : '—'),
-                    'Día Visita Técnica Previsto': ext.omDiaVisita === 'N/A' ? 'N/A' : (ext.omDiaVisita ? _fmtFull(ext.omDiaVisita) : '—'),
                 };
             });
             Exporter.downloadExcel('Tickets', rows, `IBBS_Tickets_${Date.now()}.xlsx`);
@@ -1457,6 +1646,8 @@ const Tab6 = (() => {
         enableEditOM, cancelEditOM, saveDetailsOM,
         selectCausa, selectSOC, onCCInput, onTTInput, onOMInput, initDelete, cancelDelete, confirmDeleteTicket,
         openUpdateModal, closeUpdateModal, submitUpdate,
+        openAsignarModal, closeAsignarModal, submitAsignar,
+        openEscalarModal, closeEscalarModal, selectEscalarTeam, submitEscalar,
         exportExcel, markInteractionSOC, markInteractionOM,
         openHistorialModal, closeHistorialModal
     };

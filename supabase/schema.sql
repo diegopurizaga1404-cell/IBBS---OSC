@@ -89,6 +89,11 @@ ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS om_hora_ts            TIM
 ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS om_visita_ts          TIMESTAMPTZ;
 ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS created_by            TEXT;
 ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS tipo_registro         TEXT        DEFAULT 'Usuario';
+ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS asignado_a            TEXT;
+ALTER TABLE tickets_entidades ADD COLUMN IF NOT EXISTS asignado_ts           TIMESTAMPTZ;
+
+-- Add user_name to user_permissions for Asignar lookup
+ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS user_name TEXT;
 
 
 -- ── 2. tickets_soc (Tab 3 / Tab 4) ───────────────────────

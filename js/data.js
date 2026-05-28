@@ -28,7 +28,12 @@ const DataManager = (() => {
       '45939': '9 DE OCTUBRE',
       '45832': '24 DE JUNIO',
       '45780': '3 DE MAYO',
-      '45779': '2 DE MAYO'
+      '45779': '2 DE MAYO',
+      // 2026 Excel exports (serial + 365)
+      '46304': '9 DE OCTUBRE',
+      '46197': '24 DE JUNIO',
+      '46145': '3 DE MAYO',
+      '46144': '2 DE MAYO'
     };
     ent.forEach(r => {
       if (r.Localidad && dateToName[String(r.Localidad)]) {

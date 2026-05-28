@@ -567,9 +567,6 @@
             <div class="t6-modal-header t6-inline-header">
               <div class="t6-modal-header-left">
                 <button class="t6-back-btn" onclick="Tab6.closeModal()" title="Volver a la lista">← Volver</button>
-                <button class="btn btn-primary t6-btn-update" id="t6-btn-update-status" onclick="Tab6.openUpdateModal()">
-                  ↻ Actualizar
-                </button>
               </div>
               <div class="t6-modal-header-center">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
@@ -581,14 +578,24 @@
                   <span class="t6-meta-sep">·</span>
                   <span><strong id="t6-modal-createdat">—</strong></span>
                 </div>
+                <div class="t6-modal-meta t6-asignado-meta" id="t6-asignado-meta" style="display:none;">
+                  <span>👤 Asignado a: <strong id="t6-modal-asignado">—</strong></span>
+                  <span class="t6-meta-sep">·</span>
+                  <span><strong id="t6-modal-asignado-ts">—</strong></span>
+                </div>
               </div>
-              <div class="t6-modal-header-right" id="t6-delete-container" style="margin-left: auto; display: none; align-items: center; gap: 10px;">
+              <div class="t6-modal-header-right" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <button class="btn t6-btn-asignar" id="t6-btn-asignar" onclick="Tab6.openAsignarModal()">👤 Asignar</button>
+                <button class="btn t6-btn-escalar" id="t6-btn-escalar" onclick="Tab6.openEscalarModal()">⬆ Escalar</button>
+                <button class="btn btn-primary t6-btn-update" id="t6-btn-update-status" onclick="Tab6.openUpdateModal()">↻ Actualizar</button>
+                <div id="t6-delete-container" style="display: none; align-items: center; gap: 10px;">
                 <button class="btn t6-btn-delete" id="t6-btn-delete-init" onclick="Tab6.initDelete()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">🗑️ Eliminar</button>
                 <div id="t6-delete-confirm-ui" style="display: none; align-items: center; gap: 8px;">
                   <span style="font-size:0.85rem; color:var(--gray-700); font-weight:600;">¿Confirmar eliminación?</span>
                   <button class="btn" onclick="Tab6.confirmDeleteTicket()" style="background:#fee2e2; color:#dc2626; border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Sí, eliminar</button>
                   <button class="btn" onclick="Tab6.cancelDelete()" style="background:var(--gray-100); color:var(--gray-700); border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; border-radius:6px;">Cancelar</button>
                 </div>
+              </div>
               </div>
             </div>
 
@@ -1243,6 +1250,64 @@
       </div>
     </div>
   </div><!-- /modal-t6-update -->
+
+  <!-- ════════════════════════════════════════
+     SUB-MODAL: ESCALAR INCIDENTE (Tab6)
+  ══════════════════════════════════════════ -->
+  <div class="t6-modal-overlay t6-submodal-overlay" id="modal-t6-escalar">
+    <div class="t6-submodal-panel">
+      <div class="t6-submodal-header">
+        <h3>⬆ Escalar incidente</h3>
+        <button class="t6-modal-close" onclick="Tab6.closeEscalarModal()">✕</button>
+      </div>
+      <p class="t6-submodal-sub">Selecciona el equipo al que deseas escalar este incidente.</p>
+
+      <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <button class="t6-escalar-option" id="escalar-om" onclick="Tab6.selectEscalarTeam('O&M')">
+          <span class="t6-escalar-icon">🔧</span>
+          <span class="t6-escalar-label">O&amp;M</span>
+          <span class="t6-escalar-desc">Operación y Mantenimiento</span>
+        </button>
+        <button class="t6-escalar-option" id="escalar-tsc" onclick="Tab6.selectEscalarTeam('TSC')">
+          <span class="t6-escalar-icon">📡</span>
+          <span class="t6-escalar-label">TSC</span>
+          <span class="t6-escalar-desc">Soporte Técnico Central</span>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comentario <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+        <textarea class="form-textarea" id="t6-escalar-comment" placeholder="Motivo de la escalación, observaciones..." style="min-height:90px"></textarea>
+      </div>
+
+      <div class="t6-submodal-actions">
+        <button class="btn btn-secondary" onclick="Tab6.closeEscalarModal()">Cancelar</button>
+        <button class="btn t6-btn-escalar-confirm" id="t6-btn-escalar-confirm" onclick="Tab6.submitEscalar()" disabled>⬆ Escalar</button>
+      </div>
+    </div>
+  </div><!-- /modal-t6-escalar -->
+
+  <!-- ════════════════════════════════════════
+     SUB-MODAL: ASIGNAR USUARIO (Tab6)
+  ══════════════════════════════════════════ -->
+  <div class="t6-modal-overlay t6-submodal-overlay" id="modal-t6-asignar">
+    <div class="t6-submodal-panel">
+      <div class="t6-submodal-header">
+        <h3>👤 Asignar responsable</h3>
+        <button class="t6-modal-close" onclick="Tab6.closeAsignarModal()">✕</button>
+      </div>
+      <p class="t6-submodal-sub">Selecciona un miembro del equipo OSC para asignar a este incidente.</p>
+
+      <div id="t6-asignar-user-list" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; margin-bottom:20px;">
+        <div style="text-align:center; padding:20px; color:var(--gray-400);">Cargando usuarios...</div>
+      </div>
+
+      <div class="t6-submodal-actions">
+        <button class="btn btn-secondary" onclick="Tab6.closeAsignarModal()">Cancelar</button>
+        <button class="btn t6-btn-asignar-confirm" id="t6-btn-asignar-confirm" onclick="Tab6.submitAsignar()" disabled>👤 Asignar</button>
+      </div>
+    </div>
+  </div><!-- /modal-t6-asignar -->
 
   <!-- ════════════════════════════════════════
      MODAL PERMISOS DE USUARIO
